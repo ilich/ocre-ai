@@ -1,0 +1,30 @@
+[project]
+name = "ocre-ai-backend"
+version = "0.1.0"
+description = "Open-source AI toolkit for identifying Roman coins using the Online Coins of the Roman Empire (OCRE) dataset, covering 43,000+ documented coin types from Augustus (31 BC) to Zeno (AD 491)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "asgi-correlation-id>=4.3.4",
+    "fastapi[standard]>=0.136.1",
+    "loguru>=0.7.3",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=1.20.2",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+fix = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+plugins = ['pydantic.mypy']
