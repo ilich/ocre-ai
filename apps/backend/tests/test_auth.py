@@ -1,5 +1,6 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 from argon2 import PasswordHasher
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.core.settings import Settings, get_settings
 from app.main import app
+from app.models.domain import ResetPasswordToken
 from app.services.user_repository import UserRepository, get_user_repository
 
 client = TestClient(app, raise_server_exceptions=False)
@@ -22,6 +24,13 @@ def _settings() -> Settings:
         mongodb_uri="mongodb://localhost:27017",
         mongodb_database="ocre-ai-test",
         secret_key=TEST_SECRET_KEY,
+        public_url="https://app.example.com",
+        email_from="no-reply@example.com",
+        smtp_host="smtp.example.com",
+        smtp_port=587,
+        smtp_username="smtp-user",
+        smtp_password="smtp-password",
+        smtp_use_tls=True,
     )
 
 
@@ -29,14 +38,27 @@ def _user(
     email: str = "new@example.com",
     full_name: str = "Jane Doe",
     password: str = "hashed-password",
+    reset_password_tokens: list[ResetPasswordToken] | None = None,
 ) -> SimpleNamespace:
-    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name, password=password)
+    return SimpleNamespace(
+        id=FAKE_USER_ID,
+        email=email,
+        full_name=full_name,
+        password=password,
+        reset_password_tokens=reset_password_tokens or [],
+    )
 
 
-def _mock_user_repository(existing_user: object | None = None, created_user: object | None = None) -> MagicMock:
+def _mock_user_repository(
+    existing_user: object | None = None,
+    created_user: object | None = None,
+    reset_token_user: object | None = None,
+) -> MagicMock:
     repository = MagicMock(spec=UserRepository)
     repository.get_user_by_email = AsyncMock(return_value=existing_user)
+    repository.get_user_by_reset_token = AsyncMock(return_value=reset_token_user)
     repository.create_user = AsyncMock(return_value=created_user or _user())
+    repository.update_user = AsyncMock(return_value=None)
     return repository
 
 
@@ -245,58 +267,123 @@ def test_sign_up_missing_password_returns_422() -> None:
     assert response.status_code == 422
 
 
-# --- POST /auth/reset-password ---
+# --- POST /auth/forgot-password ---
 # Requirements:
-#   - Any valid email returns 200 with success=True (intentionally does not reveal whether the email exists)
+#   - A known email returns 200, stores a reset token, and sends an email
+#   - An unknown email returns 404
 #   - Invalid email format returns 422
 
 
-def test_reset_password_returns_ok() -> None:
-    response = client.post("/auth/reset-password", json={"email": "user@example.com"})
+def test_forgot_password_returns_ok_and_sends_email() -> None:
+    user = _user(email="user@example.com")
+    repository = _mock_user_repository(existing_user=user)
+    _override_user_repository(repository)
+    smtp_server = MagicMock()
+    smtp = MagicMock()
+    smtp.return_value.__enter__.return_value = smtp_server
+
+    try:
+        with patch("app.services.email.smtplib.SMTP", new=smtp):
+            response = client.post("/auth/forgot-password", json={"email": "user@example.com"})
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 200
-    assert response.json()["success"] is True
+    assert response.json() == {"success": True, "message": "Password reset email sent"}
+    repository.get_user_by_email.assert_awaited_once_with("user@example.com")
+    repository.update_user.assert_awaited_once_with(user)
+    assert len(user.reset_password_tokens) == 1
+    assert user.reset_password_tokens[0].token
+    assert user.reset_password_tokens[0].expires_at > datetime.now(timezone.utc)
+    smtp.assert_called_once_with("smtp.example.com", 587)
+    smtp_server.starttls.assert_called_once()
+    smtp_server.login.assert_called_once_with("smtp-user", "smtp-password")
+    smtp_server.send_message.assert_called_once()
+    message = smtp_server.send_message.call_args.args[0]
+    assert message["To"] == "user@example.com"
+    assert message["From"] == "no-reply@example.com"
+    assert message["Subject"] == "Reset Your Password"
 
 
-def test_reset_password_unknown_email_still_returns_ok() -> None:
-    response = client.post("/auth/reset-password", json={"email": "ghost@example.com"})
-    assert response.status_code == 200
-    assert response.json()["success"] is True
+def test_forgot_password_unknown_email_returns_404_and_does_not_send_email() -> None:
+    repository = _mock_user_repository(existing_user=None)
+    _override_user_repository(repository)
+    smtp = MagicMock()
+
+    try:
+        with patch("app.services.email.smtplib.SMTP", new=smtp):
+            response = client.post("/auth/forgot-password", json={"email": "ghost@example.com"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    repository.get_user_by_email.assert_awaited_once_with("ghost@example.com")
+    repository.update_user.assert_not_called()
+    smtp.assert_not_called()
 
 
-def test_reset_password_invalid_email_returns_422() -> None:
-    response = client.post("/auth/reset-password", json={"email": "not-an-email"})
+def test_forgot_password_invalid_email_returns_422() -> None:
+    response = client.post("/auth/forgot-password", json={"email": "not-an-email"})
     assert response.status_code == 422
 
 
-# --- POST /auth/set-new-password ---
+# --- POST /auth/reset-password ---
 # Requirements:
-#   - Valid token and strong password return 200 with success=True
-#   - An invalid or expired token returns 400
+#   - A valid token and strong password return 200 and update the password
+#   - An invalid or expired token returns 404
 #   - Password must satisfy the password policy (422)
 #   - token and new_password are required fields (422)
 
 
-def test_set_new_password_returns_ok() -> None:
-    response = client.post("/auth/set-new-password", json={"token": "valid-token", "new_password": VALID_PASSWORD})
+def test_reset_password_returns_ok_and_updates_password() -> None:
+    token = "valid-reset-token"
+    old_token = ResetPasswordToken(token=token, expires_at=datetime.now(timezone.utc) + timedelta(minutes=10))
+    user = _user(email="user@example.com", password=_hashed_password("OldP@ssw0rd"), reset_password_tokens=[old_token])
+    repository = _mock_user_repository(reset_token_user=user)
+    _override_user_repository(repository)
+
+    try:
+        response = client.post("/auth/reset-password", json={"token": token, "new_password": VALID_PASSWORD})
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 200
-    assert response.json()["success"] is True
+    assert response.json() == {"success": True, "message": "Password has been reset successfully"}
+    repository.get_user_by_reset_token.assert_awaited_once_with(token)
+    repository.update_user.assert_awaited_once_with(user)
+    assert user.reset_password_tokens == []
+    PasswordHasher().verify(user.password, VALID_PASSWORD)
 
 
-def test_set_new_password_invalid_token_returns_400() -> None:
-    response = client.post("/auth/set-new-password", json={"token": "invalid-token", "new_password": VALID_PASSWORD})
-    assert response.status_code == 400
+def test_reset_password_invalid_token_returns_404() -> None:
+    repository = _mock_user_repository(reset_token_user=None)
+    _override_user_repository(repository)
+
+    try:
+        response = client.post("/auth/reset-password", json={"token": "invalid-token", "new_password": VALID_PASSWORD})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    repository.get_user_by_reset_token.assert_awaited_once_with("invalid-token")
+    repository.update_user.assert_not_called()
 
 
-def test_set_new_password_weak_password_returns_422() -> None:
-    response = client.post("/auth/set-new-password", json={"token": "valid-token", "new_password": "weak"})
+def test_reset_password_invalid_email_returns_422() -> None:
+    response = client.post("/auth/forgot-password", json={"email": "not-an-email"})
     assert response.status_code == 422
 
 
-def test_set_new_password_missing_token_returns_422() -> None:
-    response = client.post("/auth/set-new-password", json={"new_password": VALID_PASSWORD})
+def test_reset_password_weak_password_returns_422() -> None:
+    response = client.post("/auth/reset-password", json={"token": "valid-token", "new_password": "weak"})
     assert response.status_code == 422
 
 
-def test_set_new_password_missing_new_password_returns_422() -> None:
-    response = client.post("/auth/set-new-password", json={"token": "valid-token"})
+def test_reset_password_missing_token_returns_422() -> None:
+    response = client.post("/auth/reset-password", json={"new_password": VALID_PASSWORD})
+    assert response.status_code == 422
+
+
+def test_reset_password_missing_new_password_returns_422() -> None:
+    response = client.post("/auth/reset-password", json={"token": "valid-token"})
     assert response.status_code == 422

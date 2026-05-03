@@ -24,3 +24,20 @@ Content-Type: application/json
 ###
 GET {{baseUrl}}/user/me
 Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{username}}"
+}
+
+###
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "GcRoGWHH36xqfTYMKaJBiZrZN_MJAp7TINk3HatBUi8",
+  "new_password": "{{password}}"
+}

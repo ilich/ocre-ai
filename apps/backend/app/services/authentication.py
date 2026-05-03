@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -8,20 +9,23 @@ from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
 
 from app.core.settings import Settings, get_settings
-from app.models.auth import SignInRequest, SignInResponse, SignUpRequest
-from app.models.domain import User
+from app.models.auth import SetNewPasswordRequest, SignInRequest, SignInResponse, SignUpRequest
+from app.models.domain import ResetPasswordToken, User
+from app.services.email import EmailService, get_email_service
 from app.services.user_repository import UserRepository, get_user_repository
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+RESET_PASSWORD_TOKEN_EXPIRE_MINUTES = 15
 ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/sign-in")
 
 
 class AuthenticationService:
-    def __init__(self, user_repository: UserRepository, config: Settings):
+    def __init__(self, user_repository: UserRepository, config: Settings, email_service: EmailService):
         self.users = user_repository
         self.config = config
+        self.email_service = email_service
 
     async def signup(self, request: SignUpRequest) -> User:
         request.email = request.email.strip().lower()
@@ -57,11 +61,36 @@ class AuthenticationService:
         token = jwt.encode({"user_id": str(user.id), "exp": expiration}, self.config.secret_key, algorithm=ALGORITHM)
         return SignInResponse(access_token=token, token_type="bearer")
 
+    async def forgot_password(self, email: str) -> None:
+        email = email.strip().lower()
+        user = await self.users.get_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_PASSWORD_TOKEN_EXPIRE_MINUTES)
+        user.reset_password_tokens.append(ResetPasswordToken(token=token, expires_at=expires_at))
+        await self.users.update_user(user)
+        self.email_service.send_forgot_password_email(user, token)
+
+    async def reset_password(self, request: SetNewPasswordRequest) -> None:
+        user = await self.users.get_user_by_reset_token(request.token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired token")
+
+        ph = PasswordHasher()
+        hashed_password = ph.hash(request.new_password)
+        user.password = hashed_password
+        user.reset_password_tokens = [t for t in user.reset_password_tokens if t.token != request.token]
+        await self.users.update_user(user)
+
 
 def get_authentication_service(
-    users: Annotated[UserRepository, Depends(get_user_repository)], config: Annotated[Settings, Depends(get_settings)]
+    users: Annotated[UserRepository, Depends(get_user_repository)],
+    config: Annotated[Settings, Depends(get_settings)],
+    email_service: Annotated[EmailService, Depends(get_email_service)],
 ) -> AuthenticationService:
-    return AuthenticationService(users, config)
+    return AuthenticationService(users, config, email_service)
 
 
 async def get_current_user(

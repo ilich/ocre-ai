@@ -6,6 +6,13 @@ class Settings(BaseSettings):
     mongodb_uri: str
     mongodb_database: str
     secret_key: str
+    public_url: str
+    email_from: str
+    smtp_host: str
+    smtp_port: int
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = False
 
     model_config = SettingsConfigDict(env_file=".env")
 

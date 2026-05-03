@@ -37,11 +37,17 @@ async def sign_up(
     )
 
 
+@router.post("/forgot-password", response_model=BaseResponse)
+async def forgot_password(
+    body: ResetPasswordRequest, auth_service: Annotated[AuthenticationService, Depends(get_authentication_service)]
+) -> BaseResponse:
+    await auth_service.forgot_password(body.email)
+    return BaseResponse(success=True, message="Password reset email sent")
+
+
 @router.post("/reset-password", response_model=BaseResponse)
-async def reset_password(body: ResetPasswordRequest) -> BaseResponse:
-    raise NotImplementedError
-
-
-@router.post("/set-new-password", response_model=BaseResponse)
-async def set_new_password(body: SetNewPasswordRequest) -> BaseResponse:
-    raise NotImplementedError
+async def reset_password(
+    body: SetNewPasswordRequest, auth_service: Annotated[AuthenticationService, Depends(get_authentication_service)]
+) -> BaseResponse:
+    await auth_service.reset_password(body)
+    return BaseResponse(success=True, message="Password has been reset successfully")
