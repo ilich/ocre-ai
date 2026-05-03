@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import jwt
+from argon2 import PasswordHasher
 from beanie import PydanticObjectId
 from fastapi.testclient import TestClient
 
@@ -26,13 +27,14 @@ def _settings() -> Settings:
     )
 
 
-def _user(email: str = "user@example.com", full_name: str = "Jane Doe") -> SimpleNamespace:
-    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name)
+def _user(email: str = "user@example.com", full_name: str = "Jane Doe", password: str | None = None) -> SimpleNamespace:
+    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name, password=password)
 
 
 def _mock_user_repository(current_user: object | None = None) -> MagicMock:
     repository = MagicMock(spec=UserRepository)
     repository.get_user_by_id = AsyncMock(return_value=current_user)
+    repository.update_user = AsyncMock(return_value=None)
     return repository
 
 
@@ -109,30 +111,49 @@ def test_get_me_invalid_token_returns_401() -> None:
 
 
 def test_change_password_returns_ok() -> None:
-    response = client.post(
-        "/user/change-password",
-        json={"old_password": "OldP@ssw0rd", "new_password": VALID_PASSWORD},
-        headers={"Authorization": "Bearer valid-token"},
-    )
+    ph = PasswordHasher()
+    user = _user(password=ph.hash("OldP@ssw0rd"))
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/change-password",
+            json={"old_password": "OldP@ssw0rd", "new_password": VALID_PASSWORD},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 200
     assert response.json()["success"] is True
 
 
 def test_change_password_wrong_old_password_returns_400() -> None:
-    response = client.post(
-        "/user/change-password",
-        json={"old_password": "WrongP@ssw0rd", "new_password": VALID_PASSWORD},
-        headers={"Authorization": "Bearer valid-token"},
-    )
+    ph = PasswordHasher()
+    user = _user(password=ph.hash("OldP@ssw0rd"))
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/change-password",
+            json={"old_password": "WrongP@ssw0rd", "new_password": VALID_PASSWORD},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 400
 
 
 def test_change_password_weak_new_password_returns_422() -> None:
-    response = client.post(
-        "/user/change-password",
-        json={"old_password": "OldP@ssw0rd", "new_password": "weak"},
-        headers={"Authorization": "Bearer valid-token"},
-    )
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/change-password",
+            json={"old_password": "OldP@ssw0rd", "new_password": "weak"},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 422
 
 
@@ -145,18 +166,28 @@ def test_change_password_unauthenticated_returns_401() -> None:
 
 
 def test_change_password_missing_old_password_returns_422() -> None:
-    response = client.post(
-        "/user/change-password",
-        json={"new_password": VALID_PASSWORD},
-        headers={"Authorization": "Bearer valid-token"},
-    )
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/change-password",
+            json={"new_password": VALID_PASSWORD},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 422
 
 
 def test_change_password_missing_new_password_returns_422() -> None:
-    response = client.post(
-        "/user/change-password",
-        json={"old_password": "OldP@ssw0rd"},
-        headers={"Authorization": "Bearer valid-token"},
-    )
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/change-password",
+            json={"old_password": "OldP@ssw0rd"},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 422
