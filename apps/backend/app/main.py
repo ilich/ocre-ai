@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from asgi_correlation_id import CorrelationIdMiddleware
 from beanie import init_beanie
@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
 from app.core.logging import setup_logging
-from app.core.settings import Settings
+from app.core.settings import get_settings
 from app.models.domain import User
 from app.routes import auth, health, user
 
@@ -16,14 +16,14 @@ from app.routes import auth, health, user
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
-    config = Settings()
-    client = AsyncMongoClient(config.mongodb_uri)
+    config = get_settings()
+    client: AsyncMongoClient[Any] = AsyncMongoClient(config.mongodb_uri)
     await init_beanie(database=client.get_database(config.mongodb_database), document_models=[User])
     yield
     await client.close()
 
 
-config = Settings()
+config = get_settings()
 app = FastAPI(title="OCRE AI Backend", lifespan=lifespan)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(

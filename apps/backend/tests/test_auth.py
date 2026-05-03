@@ -1,20 +1,36 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import jwt
+from argon2 import PasswordHasher
 from beanie import PydanticObjectId
 from fastapi.testclient import TestClient
 
+from app.core.settings import Settings, get_settings
 from app.main import app
 from app.services.user_repository import UserRepository, get_user_repository
 
 client = TestClient(app, raise_server_exceptions=False)
 
 VALID_PASSWORD = "SecureP@ss1"
+TEST_SECRET_KEY = "test-secret-key-with-at-least-32-bytes"
 FAKE_USER_ID = PydanticObjectId("507f1f77bcf86cd799439011")
 
 
-def _user(email: str = "new@example.com", full_name: str = "Jane Doe") -> SimpleNamespace:
-    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name)
+def _settings() -> Settings:
+    return Settings(
+        mongodb_uri="mongodb://localhost:27017",
+        mongodb_database="ocre-ai-test",
+        secret_key=TEST_SECRET_KEY,
+    )
+
+
+def _user(
+    email: str = "new@example.com",
+    full_name: str = "Jane Doe",
+    password: str = "hashed-password",
+) -> SimpleNamespace:
+    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name, password=password)
 
 
 def _mock_user_repository(existing_user: object | None = None, created_user: object | None = None) -> MagicMock:
@@ -26,6 +42,11 @@ def _mock_user_repository(existing_user: object | None = None, created_user: obj
 
 def _override_user_repository(repository: object) -> None:
     app.dependency_overrides[get_user_repository] = lambda: repository
+    app.dependency_overrides[get_settings] = _settings
+
+
+def _hashed_password(password: str = VALID_PASSWORD) -> str:
+    return PasswordHasher().hash(password)
 
 
 # --- POST /auth/sign-in ---
@@ -37,17 +58,56 @@ def _override_user_repository(repository: object) -> None:
 
 
 def test_sign_in_returns_access_token() -> None:
-    response = client.post("/auth/sign-in", json={"login": "user@example.com", "password": VALID_PASSWORD})
+    repository = _mock_user_repository(existing_user=_user(email="user@example.com", password=_hashed_password()))
+    _override_user_repository(repository)
+    try:
+        response = client.post("/auth/sign-in", json={"login": "user@example.com", "password": VALID_PASSWORD})
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 200
     body = response.json()
-    assert body["success"] is True
     assert "access_token" in body
     assert body["token_type"] == "bearer"
+    token_payload = jwt.decode(body["access_token"], TEST_SECRET_KEY, algorithms=["HS256"])
+    assert token_payload["user_id"] == str(FAKE_USER_ID)
+    repository.get_user_by_email.assert_awaited_once_with("user@example.com")
 
 
 def test_sign_in_wrong_credentials_returns_401() -> None:
-    response = client.post("/auth/sign-in", json={"login": "user@example.com", "password": "wrongpass"})
+    repository = _mock_user_repository(existing_user=_user(email="user@example.com", password=_hashed_password()))
+    _override_user_repository(repository)
+    try:
+        response = client.post("/auth/sign-in", json={"login": "user@example.com", "password": "wrongpass"})
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 401
+    repository.get_user_by_email.assert_awaited_once_with("user@example.com")
+
+
+def test_sign_in_unknown_user_returns_401() -> None:
+    repository = _mock_user_repository(existing_user=None)
+    _override_user_repository(repository)
+    try:
+        response = client.post("/auth/sign-in", json={"login": "ghost@example.com", "password": VALID_PASSWORD})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    repository.get_user_by_email.assert_awaited_once_with("ghost@example.com")
+
+
+def test_sign_in_normalizes_login_before_lookup() -> None:
+    repository = _mock_user_repository(existing_user=_user(email="user@example.com", password=_hashed_password()))
+    _override_user_repository(repository)
+    try:
+        response = client.post("/auth/sign-in", json={"login": "USER@example.com", "password": VALID_PASSWORD})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    repository.get_user_by_email.assert_awaited_once_with("user@example.com")
 
 
 def test_sign_in_invalid_email_returns_422() -> None:

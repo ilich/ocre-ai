@@ -4,7 +4,7 @@ from app.models.domain import User
 
 
 class UserRepository:
-    async def get_user_by_email(self, email: str) -> User:
+    async def get_user_by_email(self, email: str) -> User | None:
         return await User.find_one(User.email == email)
 
     async def create_user(self, email: str, password: str, full_name: str) -> User:
@@ -19,5 +19,5 @@ class UserRepository:
         return new_user
 
 
-def get_user_repository():
+def get_user_repository() -> UserRepository:
     return UserRepository()

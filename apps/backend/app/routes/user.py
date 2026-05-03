@@ -8,7 +8,11 @@ router = APIRouter()
 
 @router.get("/me", response_model=User)
 async def get_current_user() -> User:
-    raise NotImplementedError
+    return User(
+        id=1,
+        email="test@example.com",
+        full_name="John Doe",
+    )
 
 
 @router.post("/change-password", response_model=BaseResponse)

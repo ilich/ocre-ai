@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
 from typing import Annotated
+
+from fastapi import APIRouter, Depends
 
 from app.models.auth import (
     ResetPasswordRequest,
@@ -16,8 +17,10 @@ router = APIRouter()
 
 
 @router.post("/sign-in", response_model=SignInResponse)
-async def sign_in(body: SignInRequest) -> SignInResponse:
-    raise NotImplementedError
+async def sign_in(
+    body: SignInRequest, auth_service: Annotated[AuthenticationService, Depends(get_authentication_service)]
+) -> SignInResponse:
+    return await auth_service.signin(body)
 
 
 @router.post("/sign-up", response_model=SignUpResponse, status_code=201)

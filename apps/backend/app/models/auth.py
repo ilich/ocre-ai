@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.core import BaseResponse
@@ -11,9 +9,9 @@ class SignInRequest(BaseModel):
     password: str
 
 
-class SignInResponse(BaseResponse):
-    access_token: Optional[str] = None
-    token_type: Optional[str] = None
+class SignInResponse(BaseModel):
+    access_token: str
+    token_type: str
 
 
 class SignUpRequest(BaseModel):
@@ -23,9 +21,9 @@ class SignUpRequest(BaseModel):
 
 
 class SignUpResponse(BaseResponse):
-    id: Optional[str] = None
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
+    id: str
+    email: EmailStr
+    full_name: str
 
 
 class ResetPasswordRequest(BaseModel):
