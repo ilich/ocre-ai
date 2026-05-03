@@ -9,7 +9,7 @@ from pymongo import AsyncMongoClient
 
 from app.core.logging import setup_logging
 from app.core.settings import get_settings
-from app.models.domain import User
+from app.models.domain import Coin, Geographic, Metadata, User
 from app.routes import auth, health, user
 
 
@@ -18,7 +18,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
     config = get_settings()
     client: AsyncMongoClient[Any] = AsyncMongoClient(config.mongodb_uri)
-    await init_beanie(database=client.get_database(config.mongodb_database), document_models=[User])
+    await init_beanie(
+        database=client.get_database(config.mongodb_database), document_models=[User, Geographic, Coin, Metadata]
+    )
     yield
     await client.close()
 
