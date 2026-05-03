@@ -30,3 +30,11 @@ jobs:
       - run: make install
 
       - run: make test
+        env:
+          MONGODB_URI: mongodb://localhost:27017
+          MONGODB_DATABASE: test
+          SECRET_KEY: test-secret-key
+          PUBLIC_URL: http://localhost:8000
+          EMAIL_FROM: test@example.com
+          SMTP_HOST: localhost
+          SMTP_PORT: 25
