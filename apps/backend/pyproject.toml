@@ -5,10 +5,13 @@ description = "Open-source AI toolkit for identifying Roman coins using the Onli
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "argon2-cffi>=25.1.0",
     "asgi-correlation-id>=4.3.4",
+    "beanie>=2.1.0",
     "fastapi[standard]>=0.136.1",
     "loguru>=0.7.3",
     "pydantic-settings>=2.14.0",
+    "pymongo>=4.17.0",
 ]
 
 [dependency-groups]
