@@ -8,6 +8,7 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "fastapi[standard]>=0.136.1",
     "loguru>=0.7.3",
+    "pydantic-settings>=2.14.0",
 ]
 
 [dependency-groups]
