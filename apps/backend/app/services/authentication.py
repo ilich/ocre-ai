@@ -4,6 +4,7 @@ from typing import Annotated
 import jwt
 from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
 
 from app.core.settings import Settings, get_settings
@@ -13,6 +14,8 @@ from app.services.user_repository import UserRepository, get_user_repository
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ALGORITHM = "HS256"
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/sign-in")
 
 
 class AuthenticationService:
@@ -59,3 +62,23 @@ def get_authentication_service(
     users: Annotated[UserRepository, Depends(get_user_repository)], config: Annotated[Settings, Depends(get_settings)]
 ) -> AuthenticationService:
     return AuthenticationService(users, config)
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    users: Annotated[UserRepository, Depends(get_user_repository)],
+    config: Annotated[Settings, Depends(get_settings)],
+) -> User:
+    try:
+        payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        user = await users.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")

@@ -3,8 +3,8 @@ from pydantic import BaseModel, EmailStr
 from app.models.fields import Password
 
 
-class User(BaseModel):
-    id: int
+class UserResponse(BaseModel):
+    id: str
     full_name: str
     email: EmailStr
 

@@ -1,6 +1,7 @@
 @baseUrl = http://localhost:8000
 @username = user@example.com
 @password = SecurePass123!
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmNzQ5ZmJiYjkwN2M5NzMzMzk3ZTg0IiwiZXhwIjoxNzc3ODE3NjQ5fQ.115yPklN4xXs8xiwZYfrnNjl2SgDKzAlSz3bDdVtqP4
 
 POST {{baseUrl}}/auth/sign-up
 Content-Type: application/json
@@ -22,3 +23,4 @@ Content-Type: application/json
 
 ###
 GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
