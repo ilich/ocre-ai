@@ -41,7 +41,7 @@ class Geographic(Document):
 class Coin(Document):
     record_id: str
     title: str
-    description: str
+    description: str | None
     object_type: str
     from_year: Optional[int] = None
     to_year: Optional[int] = None

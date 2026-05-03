@@ -7,6 +7,9 @@ install:
 run:
 	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+seed:
+	uv run python -m app.cli seed "../../datasets/ocre20251021.json"
+
 test:
 	uv run ruff format .
 	uv run ruff check --select I --fix .
