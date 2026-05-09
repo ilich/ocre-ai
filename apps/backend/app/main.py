@@ -3,6 +3,7 @@ from typing import Any, AsyncGenerator
 
 from asgi_correlation_id import CorrelationIdMiddleware
 from beanie import init_beanie
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
@@ -10,7 +11,9 @@ from pymongo import AsyncMongoClient
 from app.core.logging import setup_logging
 from app.core.settings import get_settings
 from app.models.domain import Coin, Geographic, Metadata, User
-from app.routes import auth, health, user
+from app.routes import auth, catalog, health, user
+
+load_dotenv()
 
 
 @asynccontextmanager
@@ -39,3 +42,4 @@ app.add_middleware(
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(user.router, prefix="/user", tags=["user"])
+app.include_router(catalog.router, prefix="/catalog", tags=["catalog"])

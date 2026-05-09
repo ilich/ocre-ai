@@ -10,6 +10,9 @@ run:
 seed:
 	uv run python -m app.cli seed "../../datasets/ocre20251021.json"
 
+embed:
+	uv run python -m app.cli embed-coins
+
 test:
 	uv run ruff format .
 	uv run ruff check --select I --fix .

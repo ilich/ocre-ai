@@ -1,7 +1,8 @@
 @baseUrl = http://localhost:8000
 @username = user@example.com
 @password = SecurePass123!
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmNzQ5ZmJiYjkwN2M5NzMzMzk3ZTg0IiwiZXhwIjoxNzc3ODI1NjQ2fQ.rOqXBhXdNbxviIWX5Ip5nEtJw3sRGY0oy4wCbOwcgGE
+@token = 
+@searchQuery = What is the coin with PRINCIPI - IVVE-NTVTIS text on it and it was strike in Lugdunum only
 
 POST {{baseUrl}}/auth/sign-up
 Content-Type: application/json
@@ -51,3 +52,10 @@ Content-Type: application/json
   "old_password": "{{password}}",
   "new_password": "NewSecurePass123!"
 }
+
+
+###
+GET {{baseUrl}}/catalog?search={{searchQuery}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+

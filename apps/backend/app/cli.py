@@ -5,17 +5,45 @@ from typing import Any
 
 import typer
 from beanie import init_beanie
+from dotenv import load_dotenv
+from pydantic_ai import Embedder
 from pymongo import AsyncMongoClient
 
 from app.core.settings import get_settings
 from app.models.domain import Coin, Geographic, Metadata, MetadataType
 
+load_dotenv()
 cli = typer.Typer()
 
 
 @cli.callback()
 def main() -> None:
     """OCRE AI management CLI."""
+
+
+def _coin_to_text(coin: Coin) -> str:
+    text = ["#" + coin.title + "\n"]
+    if coin.description:
+        text.append(coin.description + "\n")
+    if coin.from_year and coin.to_year:
+        text.append(f"Date range: {coin.from_year} - {coin.to_year}")
+    elif coin.from_year:
+        text.append(f"From year: {coin.from_year}")
+    elif coin.to_year:
+        text.append(f"To year: {coin.to_year}")
+    if coin.denomination:
+        text.append("Denomination: " + ", ".join(coin.denomination))
+    if coin.manufacturer:
+        text.append("Manufacturer: " + ", ".join(coin.manufacturer))
+    if coin.material:
+        text.append("Material: " + ", ".join(coin.material))
+    if coin.authority:
+        text.append("Authority: " + ", ".join(coin.authority))
+    if coin.geographic:
+        text.append(
+            "Geographic: " + ", ".join(f"{g.name} ({g.type})" for g in coin.geographic if isinstance(g, Geographic))
+        )
+    return "\n".join(text)
 
 
 async def _seed(dataset: Path) -> None:
@@ -105,12 +133,43 @@ async def _seed(dataset: Path) -> None:
         await client.close()
 
 
+async def _embed_coins() -> None:
+    config = get_settings()
+    client: AsyncMongoClient[Any] = AsyncMongoClient(config.mongodb_uri)
+    try:
+        db = client.get_database(config.mongodb_database)
+        await init_beanie(database=db, document_models=[Geographic, Coin, Metadata])
+
+        coins = await Coin.find(Coin.embedding == None, fetch_links=True).to_list()  # noqa: E711
+        typer.echo(f"Found {len(coins)} coins without embeddings")
+
+        if not coins:
+            return
+
+        embedder = Embedder(config.ai_embedding_model)
+        for i, coin in enumerate(coins, start=1):
+            typer.echo(f"  [{i}/{len(coins)}] {coin.title}")
+            result = await embedder.embed(_coin_to_text(coin), input_type="document")
+            coin.embedding = list(result.embeddings[0])
+            await coin.save()
+
+        typer.echo(f"Done. Updated {len(coins)} coins.")
+    finally:
+        await client.close()
+
+
 @cli.command()
 def seed(
     dataset: Path = typer.Argument(..., help="Path to the OCRE JSON dataset"),
 ) -> None:
     """Drop and re-seed the Geographic, Metadata, and Coin collections."""
     asyncio.run(_seed(dataset))
+
+
+@cli.command()
+def embed_coins() -> None:
+    """Compute and store embeddings for all coins that do not have one yet."""
+    asyncio.run(_embed_coins())
 
 
 if __name__ == "__main__":

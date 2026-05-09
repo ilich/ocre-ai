@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: str | None = None
     smtp_use_tls: bool = False
+    openai_api_key: str
+    ai_model: str
+    ai_embedding_model: str
 
     model_config = SettingsConfigDict(env_file=".env")
 

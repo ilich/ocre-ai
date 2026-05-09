@@ -4,7 +4,7 @@ from typing import Optional
 
 from beanie import Document, Indexed, Link
 from pydantic import BaseModel, EmailStr
-from pymongo import ASCENDING, TEXT, IndexModel
+from pymongo import ASCENDING, IndexModel
 
 
 class ResetPasswordToken(BaseModel):
@@ -52,9 +52,6 @@ class Coin(Document):
     authority: list[str] = []
     geographic: list[Link[Geographic]] = []
     images: list[str] = []
-    # text-embedding-3-small produces 1536-dimensional vectors
-    # Atlas Vector Search index (create via Atlas UI / Admin API):
-    # { "fields": [{ "type": "vector", "path": "embedding", "numDimensions": 1536, "similarity": "cosine" }] }
     embedding: Optional[list[float]] = None
 
     class Settings:
@@ -67,17 +64,6 @@ class Coin(Document):
             IndexModel([("manufacturer", ASCENDING)]),
             IndexModel([("material", ASCENDING)]),
             IndexModel([("authority", ASCENDING)]),
-            IndexModel(
-                [
-                    ("title", TEXT),
-                    ("description", TEXT),
-                    ("denomination", TEXT),
-                    ("manufacturer", TEXT),
-                    ("material", TEXT),
-                    ("authority", TEXT),
-                ],
-                name="coins_text_search",
-            ),
         ]
 
 
