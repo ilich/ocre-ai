@@ -5,6 +5,12 @@ from pydantic import BaseModel
 
 class FilterParams(BaseModel):
     search: str | None = None
+    from_year: int | None = None
+    to_year: int | None = None
+    denomination: list[str] = []
+    manufacturer: list[str] = []
+    material: list[str] = []
+    authority: list[str] = []
     order_by: Literal[
         "relevance",
         "id",

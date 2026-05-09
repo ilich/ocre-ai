@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from bson import ObjectId
 from fastapi import Depends
@@ -23,6 +23,23 @@ _SORT_FIELD: dict[str, str] = {
     "authority": "authority",
     "geographic": "geographic",
 }
+
+
+def _build_filter(params: FilterParams) -> dict[str, Any]:
+    f: dict[str, Any] = {}
+    if params.from_year is not None:
+        f["from_year"] = {"$gte": params.from_year}
+    if params.to_year is not None:
+        f["to_year"] = {"$lte": params.to_year}
+    if params.denomination:
+        f["denomination"] = {"$in": params.denomination}
+    if params.manufacturer:
+        f["manufacturer"] = {"$in": params.manufacturer}
+    if params.material:
+        f["material"] = {"$in": params.material}
+    if params.authority:
+        f["authority"] = {"$in": params.authority}
+    return f
 
 
 def _map_coin(coin: Coin) -> CoinModel:
@@ -58,6 +75,7 @@ class CatalogService:
 
         collection = Coin.get_pymongo_collection()
         candidate_limit = max(100, params.skip + params.limit)
+        mongo_filter = _build_filter(params)
 
         pipeline = [
             {
@@ -100,6 +118,7 @@ class CatalogService:
                     }
                 }
             },
+            *([{"$match": mongo_filter}] if mongo_filter else []),
             {
                 "$facet": {
                     "items": [
@@ -120,13 +139,14 @@ class CatalogService:
         return CoinListResponse(items=await self._fetch_coins(page_ids), total=total)
 
     async def _list_coins(self, params: FilterParams) -> CoinListResponse:
-        query = Coin.find(fetch_links=True)
+        mongo_filter = _build_filter(params)
+        query = Coin.find(mongo_filter, fetch_links=True)
 
         if params.order_by != "relevance":
             prefix = "" if params.order_direction == "asc" else "-"
             query = query.sort(f"{prefix}{_SORT_FIELD[params.order_by]}")
 
-        total = await Coin.count()
+        total = await Coin.find(mongo_filter).count()
         coins = await query.skip(params.skip).limit(params.limit).to_list()
         return CoinListResponse(items=[_map_coin(coin) for coin in coins], total=total)
 

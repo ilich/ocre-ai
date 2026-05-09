@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:8000
 @username = user@example.com
 @password = SecurePass123!
-@token = 
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4MzQ4Nzk2fQ.GzCtdp0ZmwTeLMshCnOGypnpSP7XM1T3rTCA8DvjkUw
 @searchQuery = What is the coin with PRINCIPI - IVVE-NTVTIS text on it and it was strike in Lugdunum only
 
 POST {{baseUrl}}/auth/sign-up
@@ -55,7 +55,7 @@ Content-Type: application/json
 
 
 ###
-GET {{baseUrl}}/catalog?search={{searchQuery}}
+GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
