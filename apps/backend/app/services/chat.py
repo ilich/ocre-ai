@@ -8,7 +8,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from app.core.settings import Settings, get_settings
-from app.models.catalog import FilterParams
+from app.models.catalog import CoinModel, FilterParams
 from app.models.chat import ChatHistoryItem, ChatRequest, ChatResponse
 from app.services.catalog import CatalogService
 from app.services.vision import SupportedImageContentType, Vision
@@ -63,6 +63,33 @@ def _validated_attachment_content_type(content_type: str) -> SupportedImageConte
         status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         detail="Only PNG and JPG images are supported",
     )
+
+
+def _format_coin_context(coins: list[CoinModel], missing_record_ids: list[str]) -> str:
+    lines = ["[Coin context:"]
+    for coin in coins:
+        entry: list[str] = [f"- {coin.title} (ID: {coin.id})"]
+        if coin.date_range:
+            entry.append(f"  Date: {coin.date_range}")
+        if coin.authority:
+            entry.append(f"  Authority: {', '.join(coin.authority)}")
+        if coin.denomination:
+            entry.append(f"  Denomination: {', '.join(coin.denomination)}")
+        if coin.material:
+            entry.append(f"  Material: {', '.join(coin.material)}")
+        if coin.manufacturer:
+            entry.append(f"  Mint: {', '.join(coin.manufacturer)}")
+        if coin.geographic:
+            entry.append(f"  Geography: {', '.join(coin.geographic)}")
+        if coin.description:
+            entry.append(f"  Description: {coin.description}")
+        lines.append("\n".join(entry))
+
+    if missing_record_ids:
+        lines.append(f"- Missing record IDs: {', '.join(missing_record_ids)}")
+
+    lines.append("]")
+    return "\n".join(lines)
 
 
 def _create_agent(model: str) -> Agent[_Deps, str]:
@@ -160,10 +187,11 @@ class ChatService:
         self.config = config
 
     async def chat(self, request: ChatRequest) -> ChatResponse:
+        catalog = CatalogService(self.config)
         deps = _Deps(
             config=self.config,
             vision=Vision(self.config),
-            catalog=CatalogService(self.config),
+            catalog=catalog,
             request=request,
         )
 
@@ -172,8 +200,12 @@ class ChatService:
             _validated_attachment_content_type(request.attachment.content_type)
             user_message = f"[Attached image: {request.attachment.filename}]\n{user_message}"
         if request.coins_context:
-            coins_list = ", ".join(request.coins_context)
-            user_message = f"{user_message}\n\n[Coin context: {coins_list}]"
+            coins = await catalog.find_coins_by_record_ids(request.coins_context)
+            found_record_ids = {coin.id for coin in coins}
+            missing_record_ids = [record_id for record_id in request.coins_context if record_id not in found_record_ids]
+            user_message = f"{user_message}\n\n{_format_coin_context(coins, missing_record_ids)}"
+
+        logger.info("User message: {}", user_message)
 
         agent = _get_agent(self.config.ai_model)
         message_history = _build_message_history(request.history or [])

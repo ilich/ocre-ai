@@ -1,16 +1,19 @@
 import asyncio
 import base64
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 
 from app.core.settings import Settings
+from app.models.catalog import CoinModel
 from app.models.chat import ChatAttachment, ChatRequest
 from app.services.catalog import CatalogService
 from app.services.chat import ChatService, _create_agent, _Deps, _validated_attachment_content_type
 from app.services.vision import Vision
+
+MOCK_LLM_MODEL = "test"
 
 
 def _settings() -> Settings:
@@ -23,7 +26,7 @@ def _settings() -> Settings:
         smtp_host="localhost",
         smtp_port=25,
         openai_api_key="test-key",
-        ai_model="openai:gpt-4o-mini",
+        ai_model=MOCK_LLM_MODEL,
         ai_embedding_model="text-embedding-3-small",
     )
 
@@ -56,8 +59,47 @@ def test_chat_rejects_unsupported_attachment_before_creating_agent() -> None:
     get_agent.assert_not_called()
 
 
+def test_chat_resolves_coin_context_record_ids_before_agent_run() -> None:
+    service = ChatService(_settings())
+    request = ChatRequest(message="Compare these coins", coins_context=["rrc.1.1", "missing.id"])
+    catalog = MagicMock(spec=CatalogService)
+    catalog.find_coins_by_record_ids = AsyncMock(
+        return_value=[
+            CoinModel(
+                id="rrc.1.1",
+                title="Test Coin",
+                description="A test coin description",
+                object_type="Coin",
+                date_range="211-208 BC",
+                denomination=["denarius"],
+                manufacturer=["Rome"],
+                material=["silver"],
+                authority=["Roman Republic"],
+                geographic=["Rome"],
+                images=[],
+            )
+        ]
+    )
+    agent = MagicMock()
+    agent.run = AsyncMock(return_value=SimpleNamespace(output="comparison"))
+
+    with (
+        patch("app.services.chat.CatalogService", return_value=catalog),
+        patch("app.services.chat._get_agent", return_value=agent),
+    ):
+        response = asyncio.run(service.chat(request))
+
+    assert response.message == "comparison"
+    catalog.find_coins_by_record_ids.assert_awaited_once_with(["rrc.1.1", "missing.id"])
+    user_message = agent.run.await_args.args[0]
+    assert "[Coin context:" in user_message
+    assert "Test Coin (ID: rrc.1.1)" in user_message
+    assert "Description: A test coin description" in user_message
+    assert "Missing record IDs: missing.id" in user_message
+
+
 def test_describe_image_validates_attachment_content_type_before_vision_call() -> None:
-    agent = _create_agent("openai:gpt-4o-mini")
+    agent = _create_agent(MOCK_LLM_MODEL)
     describe_image = agent._function_toolset.tools["describe_image"].function
     settings = _settings()
     vision = Vision(settings)
@@ -79,7 +121,7 @@ def test_describe_image_validates_attachment_content_type_before_vision_call() -
 
 
 def test_describe_image_passes_decoded_supported_attachment_to_vision() -> None:
-    agent = _create_agent("openai:gpt-4o-mini")
+    agent = _create_agent(MOCK_LLM_MODEL)
     describe_image = agent._function_toolset.tools["describe_image"].function
     settings = _settings()
     vision = Vision(settings)

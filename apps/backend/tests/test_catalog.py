@@ -108,6 +108,19 @@ def _mock_catalog_service(response: CoinListResponse | None = None) -> MagicMock
     return service
 
 
+def test_find_coins_by_record_ids_fetches_and_preserves_requested_order() -> None:
+    service = _service()
+    coin1 = _make_coin(record_id="rrc.1.1", title="First Coin")
+    coin2 = _make_coin(record_id="rrc.2.1", title="Second Coin")
+
+    with patch.object(Coin, "find", return_value=_mock_find_query(coins=[coin2, coin1])) as find:
+        result = asyncio.run(service.find_coins_by_record_ids(["rrc.1.1", "missing.id", "rrc.2.1"]))
+
+    find.assert_called_once_with({"record_id": {"$in": ["rrc.1.1", "missing.id", "rrc.2.1"]}}, fetch_links=True)
+    assert [coin.id for coin in result] == ["rrc.1.1", "rrc.2.1"]
+    assert [coin.title for coin in result] == ["First Coin", "Second Coin"]
+
+
 # ---------------------------------------------------------------------------
 # _build_filter
 # ---------------------------------------------------------------------------

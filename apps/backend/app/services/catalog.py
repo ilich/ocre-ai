@@ -69,6 +69,16 @@ class CatalogService:
             return await self._coins_search(params, user)
         return await self._list_coins(params, user)
 
+    async def find_coins_by_record_ids(self, record_ids: list[str]) -> list[CoinModel]:
+        if not record_ids:
+            return []
+
+        coins_by_record_id = {
+            coin.record_id: coin
+            for coin in await Coin.find({"record_id": {"$in": record_ids}}, fetch_links=True).to_list()
+        }
+        return [_map_coin(coins_by_record_id[record_id]) for record_id in record_ids if record_id in coins_by_record_id]
+
     async def _coins_search(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
         assert params.search
         embedder = Embedder(self.config.ai_embedding_model)
