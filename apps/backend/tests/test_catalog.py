@@ -4,11 +4,17 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from bson import ObjectId
+from fastapi.testclient import TestClient
 
 from app.core.settings import Settings
+from app.main import app
 from app.models.catalog import CoinListResponse, FilterParams
 from app.models.domain import Coin, Geographic
+from app.services.authentication import get_current_user
 from app.services.catalog import CatalogService, _build_filter, _map_coin
+from app.services.vision import get_vision
+
+client = TestClient(app, raise_server_exceptions=False)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -84,6 +90,16 @@ def _mock_embedder(vector: list[float] | None = None) -> MagicMock:
     embedder = MagicMock()
     embedder.embed_query = AsyncMock(return_value=embed_result)
     return embedder
+
+
+def _mock_vision(description: str = "TODO") -> MagicMock:
+    vision = MagicMock()
+    vision.describe = AsyncMock(return_value=description)
+    return vision
+
+
+def _authenticated_user() -> SimpleNamespace:
+    return SimpleNamespace(id=ObjectId(), email="user@example.com")
 
 
 # ---------------------------------------------------------------------------
@@ -348,3 +364,82 @@ def test_fetch_coins_skips_missing_ids() -> None:
         result = asyncio.run(_service()._fetch_coins([str(oid), ghost_id]))
     assert len(result) == 1
     assert result[0].id == "rrc.1.1"
+
+
+# ---------------------------------------------------------------------------
+# POST /catalog/image
+# ---------------------------------------------------------------------------
+
+
+def test_describe_coin_image_returns_description_for_png_upload() -> None:
+    vision = _mock_vision("Roman coin of Augustus")
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_vision] = lambda: vision
+    try:
+        with patch("app.services.vision.Agent") as agent:
+            response = client.post(
+                "/catalog/image",
+                files={"image": ("coin.png", b"png-bytes", "image/png")},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"description": "Roman coin of Augustus"}
+    vision.describe.assert_awaited_once_with(b"png-bytes", "image/png")
+    agent.assert_not_called()
+
+
+def test_describe_coin_image_returns_description_for_jpg_upload() -> None:
+    vision = _mock_vision("Roman coin of Trajan")
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_vision] = lambda: vision
+    try:
+        with patch("app.services.vision.Agent") as agent:
+            response = client.post(
+                "/catalog/image",
+                files={"image": ("coin.jpg", b"jpg-bytes", "image/jpeg")},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"description": "Roman coin of Trajan"}
+    vision.describe.assert_awaited_once_with(b"jpg-bytes", "image/jpeg")
+    agent.assert_not_called()
+
+
+def test_describe_coin_image_rejects_unsupported_file_format() -> None:
+    vision = _mock_vision()
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_vision] = lambda: vision
+    try:
+        with patch("app.services.vision.Agent") as agent:
+            response = client.post(
+                "/catalog/image",
+                files={"image": ("coin.gif", b"gif-bytes", "image/gif")},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 415
+    assert response.json()["detail"] == "Only PNG and JPG images are supported"
+    vision.describe.assert_not_called()
+    agent.assert_not_called()
+
+
+def test_describe_coin_image_unauthenticated_returns_401() -> None:
+    vision = _mock_vision()
+    app.dependency_overrides[get_vision] = lambda: vision
+    try:
+        with patch("app.services.vision.Agent") as agent:
+            response = client.post(
+                "/catalog/image",
+                files={"image": ("coin.png", b"png-bytes", "image/png")},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    vision.describe.assert_not_called()
+    agent.assert_not_called()

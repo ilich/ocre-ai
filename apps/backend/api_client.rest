@@ -1,8 +1,8 @@
 @baseUrl = http://localhost:8000
 @username = user@example.com
 @password = SecurePass123!
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4Mzg2MTU5fQ.cQH_2RKL81-oAGK9FhABkZnqttLWtYC68ILr-0JJ15U
-@searchQuery = What is the coin with PRINCIPI - IVVE-NTVTIS text on it and it was strike in Lugdunum only
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4Mzk1ODY4fQ.6j-k_MuyM1htpXQUpWXISgVqizCkwvizD_BD41HCP-I
+@searchQuery = Roman coin of Constantius II, 351-355 AD, AE3. Obverse: Laureate head right. Legend: “DN CONSTAN-TIVS P F AVG”. Reverse: Soldier standing left, holding spear and shield, receiving victory from a female figure. Legend: “VICTO-RIAE AVGG”. Translation: “Victories of the Augusti”. Keywords: Constantius II, AE3, Roman Empire, victory, soldier, female personification. Authenticity notes: Well-preserved, typical wear for the period.
 
 POST {{baseUrl}}/auth/sign-up
 Content-Type: application/json
@@ -58,6 +58,18 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II
 Authorization: Bearer {{token}}
 Content-Type: application/json
+
+###
+POST {{baseUrl}}/catalog/image
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=coin-image-boundary
+
+--coin-image-boundary
+Content-Disposition: form-data; name="image"; filename="coin.jpg"
+Content-Type: image/jpeg
+
+< ./tests/images/coin1.jpg
+--coin-image-boundary--
 
 ###
 POST {{baseUrl}}/user/collection

@@ -46,3 +46,7 @@ class CoinModel(BaseModel):
 class CoinListResponse(BaseModel):
     items: list[CoinModel]
     total: int
+
+
+class CoinImageDescriptionResponse(BaseModel):
+    description: str
