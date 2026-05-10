@@ -11,7 +11,7 @@ from app.main import app
 from app.models.catalog import CoinListResponse, FilterParams
 from app.models.domain import Coin, Geographic
 from app.services.authentication import get_current_user
-from app.services.catalog import CatalogService, _build_filter, _map_coin
+from app.services.catalog import CatalogService, _build_filter, _map_coin, get_catalog_service
 from app.services.vision import get_vision
 
 client = TestClient(app, raise_server_exceptions=False)
@@ -99,7 +99,13 @@ def _mock_vision(description: str = "TODO") -> MagicMock:
 
 
 def _authenticated_user() -> SimpleNamespace:
-    return SimpleNamespace(id=ObjectId(), email="user@example.com")
+    return SimpleNamespace(id=ObjectId(), email="user@example.com", collection=["rrc.1.1"])
+
+
+def _mock_catalog_service(response: CoinListResponse | None = None) -> MagicMock:
+    service = MagicMock(spec=CatalogService)
+    service.find_coins = AsyncMock(return_value=response or CoinListResponse(items=[], total=0))
+    return service
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +195,34 @@ def test_map_coin_excludes_unresolved_geographic_links() -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_find_coins_endpoint_returns_all_coins_when_no_filter_or_my_param() -> None:
+    service = _mock_catalog_service()
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "total": 0}
+    service.find_coins.assert_awaited_once_with(FilterParams(), None)
+
+
+def test_find_coins_endpoint_passes_user_when_my_param_is_true() -> None:
+    user = _authenticated_user()
+    service = _mock_catalog_service()
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog?my=true")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    service.find_coins.assert_awaited_once_with(FilterParams(), user)
+
+
 def test_find_coins_dispatches_to_coins_search_when_search_provided() -> None:
     service = _service()
     params = FilterParams(search="roman")
@@ -196,7 +230,7 @@ def test_find_coins_dispatches_to_coins_search_when_search_provided() -> None:
     mock_list = AsyncMock(return_value=CoinListResponse(items=[], total=0))
     with patch.object(service, "_coins_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
         asyncio.run(service.find_coins(params))
-    mock_hybrid.assert_awaited_once_with(params)
+    mock_hybrid.assert_awaited_once_with(params, None)
     mock_list.assert_not_called()
 
 
@@ -207,7 +241,7 @@ def test_find_coins_dispatches_to_list_coins_when_no_search() -> None:
     mock_list = AsyncMock(return_value=CoinListResponse(items=[], total=0))
     with patch.object(service, "_coins_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
         asyncio.run(service.find_coins(params))
-    mock_list.assert_awaited_once_with(params)
+    mock_list.assert_awaited_once_with(params, None)
     mock_hybrid.assert_not_called()
 
 

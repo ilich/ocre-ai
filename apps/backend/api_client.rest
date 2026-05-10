@@ -55,7 +55,7 @@ Authorization: Bearer {{token}}
 
 
 ###
-GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II
+GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II&my=false
 Authorization: Bearer {{token}}
 Content-Type: application/json
 

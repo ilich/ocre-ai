@@ -19,11 +19,12 @@ SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 @router.get("", response_model=CoinListResponse)
 async def find_coins(
-    filter: Annotated[FilterParams, Query()],
+    filter: Annotated[FilterParams, Depends()],
     user: Annotated[User, Depends(get_current_user)],
     service: Annotated[CatalogService, Depends(get_catalog_service)],
+    my: Annotated[bool, Query(description="Whether to search only in the user's collection")] = False,
 ) -> CoinListResponse:
-    return await service.find_coins(filter)
+    return await service.find_coins(filter, user if my else None)
 
 
 @router.post("/image", response_model=CoinImageDescriptionResponse)

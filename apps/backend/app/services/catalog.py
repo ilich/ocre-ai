@@ -6,7 +6,7 @@ from pydantic_ai import Embedder
 
 from app.core.settings import Settings, get_settings
 from app.models.catalog import CoinListResponse, CoinModel, FilterParams
-from app.models.domain import Coin, Geographic
+from app.models.domain import Coin, Geographic, User
 
 VECTOR_INDEX = "coins_vector_search"
 TEXT_INDEX = "coins_text_search"
@@ -25,7 +25,7 @@ _SORT_FIELD: dict[str, str] = {
 }
 
 
-def _build_filter(params: FilterParams) -> dict[str, Any]:
+def _build_filter(params: FilterParams, user: User | None = None) -> dict[str, Any]:
     f: dict[str, Any] = {}
     if params.from_year is not None:
         f["from_year"] = {"$gte": params.from_year}
@@ -39,6 +39,8 @@ def _build_filter(params: FilterParams) -> dict[str, Any]:
         f["material"] = {"$in": params.material}
     if params.authority:
         f["authority"] = {"$in": params.authority}
+    if user:
+        f["record_id"] = {"$in": user.collection}
     return f
 
 
@@ -62,12 +64,12 @@ class CatalogService:
     def __init__(self, config: Settings) -> None:
         self.config = config
 
-    async def find_coins(self, params: FilterParams) -> CoinListResponse:
+    async def find_coins(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
         if params.search:
-            return await self._coins_search(params)
-        return await self._list_coins(params)
+            return await self._coins_search(params, user)
+        return await self._list_coins(params, user)
 
-    async def _coins_search(self, params: FilterParams) -> CoinListResponse:
+    async def _coins_search(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
         assert params.search
         embedder = Embedder(self.config.ai_embedding_model)
         embed_result = await embedder.embed_query(params.search)
@@ -75,7 +77,7 @@ class CatalogService:
 
         collection = Coin.get_pymongo_collection()
         candidate_limit = max(100, params.skip + params.limit)
-        mongo_filter = _build_filter(params)
+        mongo_filter = _build_filter(params, user)
 
         pipeline = [
             {
@@ -138,8 +140,8 @@ class CatalogService:
         page_ids = [str(doc["_id"]) for doc in facet["items"]]
         return CoinListResponse(items=await self._fetch_coins(page_ids), total=total)
 
-    async def _list_coins(self, params: FilterParams) -> CoinListResponse:
-        mongo_filter = _build_filter(params)
+    async def _list_coins(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
+        mongo_filter = _build_filter(params, user)
         query = Coin.find(mongo_filter, fetch_links=True)
 
         if params.order_by != "relevance":
