@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 
-from app.models.domain import User
+from fastapi import HTTPException, status
+
+from app.models.domain import Coin, User
 
 
 class UserRepository:
@@ -37,6 +39,22 @@ class UserRepository:
     async def update_user(self, user: User) -> None:
         user.updated_at = datetime.now(timezone.utc)
         await user.save()
+
+    async def add_coin_to_collection(self, user: User, record_id: str) -> None:
+        coin = await Coin.find_one(Coin.record_id == record_id)
+        if not coin:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coin not found")
+
+        if record_id not in user.collection:
+            user.collection.append(record_id)
+            await self.update_user(user)
+
+    async def remove_coin_from_collection(self, user: User, record_id: str) -> None:
+        if record_id in user.collection:
+            user.collection.remove(record_id)
+            await self.update_user(user)
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coin not in collection")
 
 
 def get_user_repository() -> UserRepository:

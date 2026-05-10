@@ -158,7 +158,7 @@ def test_map_coin_resolves_geographic_links() -> None:
     geo.type = "mint"
     coin = _make_coin(geographic=[geo])
     result = _map_coin(coin)  # type: ignore[arg-type]
-    assert result.geographic == ["Rome (mint)"]
+    assert result.geographic == ["Rome"]
 
 
 def test_map_coin_excludes_unresolved_geographic_links() -> None:
@@ -173,12 +173,12 @@ def test_map_coin_excludes_unresolved_geographic_links() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_find_coins_dispatches_to_hybrid_search_when_search_provided() -> None:
+def test_find_coins_dispatches_to_coins_search_when_search_provided() -> None:
     service = _service()
     params = FilterParams(search="roman")
     mock_hybrid = AsyncMock(return_value=CoinListResponse(items=[], total=0))
     mock_list = AsyncMock(return_value=CoinListResponse(items=[], total=0))
-    with patch.object(service, "_hybrid_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
+    with patch.object(service, "_coins_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
         asyncio.run(service.find_coins(params))
     mock_hybrid.assert_awaited_once_with(params)
     mock_list.assert_not_called()
@@ -189,7 +189,7 @@ def test_find_coins_dispatches_to_list_coins_when_no_search() -> None:
     params = FilterParams()
     mock_hybrid = AsyncMock(return_value=CoinListResponse(items=[], total=0))
     mock_list = AsyncMock(return_value=CoinListResponse(items=[], total=0))
-    with patch.object(service, "_hybrid_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
+    with patch.object(service, "_coins_search", new=mock_hybrid), patch.object(service, "_list_coins", new=mock_list):
         asyncio.run(service.find_coins(params))
     mock_list.assert_awaited_once_with(params)
     mock_hybrid.assert_not_called()
@@ -246,11 +246,11 @@ def test_list_coins_ascending_sort() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _hybrid_search
+# _coins_search
 # ---------------------------------------------------------------------------
 
 
-def test_hybrid_search_calls_embedder_with_search_text() -> None:
+def test_coins_search_calls_embedder_with_search_text() -> None:
     service = _service()
     embedder = _mock_embedder()
     with (
@@ -258,11 +258,11 @@ def test_hybrid_search_calls_embedder_with_search_text() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=_mock_collection()),
         patch.object(Coin, "find", return_value=_mock_find_query()),
     ):
-        asyncio.run(service._hybrid_search(FilterParams(search="roman")))
+        asyncio.run(service._coins_search(FilterParams(search="roman")))
     embedder.embed_query.assert_awaited_once_with("roman")
 
 
-def test_hybrid_search_includes_match_stage_when_filters_set() -> None:
+def test_coins_search_includes_match_stage_when_filters_set() -> None:
     service = _service()
     mock_col = _mock_collection()
     with (
@@ -270,14 +270,14 @@ def test_hybrid_search_includes_match_stage_when_filters_set() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=mock_col),
         patch.object(Coin, "find", return_value=_mock_find_query()),
     ):
-        asyncio.run(service._hybrid_search(FilterParams(search="roman", material=["silver"])))
+        asyncio.run(service._coins_search(FilterParams(search="roman", material=["silver"])))
     pipeline = mock_col.aggregate.call_args.args[0]
     match_stages = [s for s in pipeline if "$match" in s]
     assert len(match_stages) == 1
     assert match_stages[0]["$match"] == {"material": {"$in": ["silver"]}}
 
 
-def test_hybrid_search_excludes_match_stage_when_no_filters() -> None:
+def test_coins_search_excludes_match_stage_when_no_filters() -> None:
     service = _service()
     mock_col = _mock_collection()
     with (
@@ -285,12 +285,12 @@ def test_hybrid_search_excludes_match_stage_when_no_filters() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=mock_col),
         patch.object(Coin, "find", return_value=_mock_find_query()),
     ):
-        asyncio.run(service._hybrid_search(FilterParams(search="roman")))
+        asyncio.run(service._coins_search(FilterParams(search="roman")))
     pipeline = mock_col.aggregate.call_args.args[0]
     assert not any("$match" in s for s in pipeline)
 
 
-def test_hybrid_search_returns_coin_list_response() -> None:
+def test_coins_search_returns_coin_list_response() -> None:
     service = _service()
     oid = ObjectId()
     coin = _make_coin(id=oid)
@@ -300,13 +300,13 @@ def test_hybrid_search_returns_coin_list_response() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=mock_col),
         patch.object(Coin, "find", return_value=_mock_find_query(coins=[coin], count=1)),
     ):
-        result = asyncio.run(service._hybrid_search(FilterParams(search="roman")))
+        result = asyncio.run(service._coins_search(FilterParams(search="roman")))
     assert isinstance(result, CoinListResponse)
     assert result.total == 1
     assert len(result.items) == 1
 
 
-def test_hybrid_search_returns_empty_when_no_results() -> None:
+def test_coins_search_returns_empty_when_no_results() -> None:
     service = _service()
     mock_col = _mock_collection(facet_items=[], total=0)
     with (
@@ -314,7 +314,7 @@ def test_hybrid_search_returns_empty_when_no_results() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=mock_col),
         patch.object(Coin, "find", return_value=_mock_find_query()),
     ):
-        result = asyncio.run(service._hybrid_search(FilterParams(search="roman")))
+        result = asyncio.run(service._coins_search(FilterParams(search="roman")))
     assert result.total == 0
     assert result.items == []
 

@@ -53,7 +53,7 @@ def _map_coin(coin: Coin) -> CoinModel:
         manufacturer=coin.manufacturer,
         material=coin.material,
         authority=coin.authority,
-        geographic=[f"{g.name} ({g.type})" for g in coin.geographic if isinstance(g, Geographic)],
+        geographic=[g.name for g in coin.geographic if isinstance(g, Geographic)],
         images=coin.images,
     )
 
@@ -64,10 +64,10 @@ class CatalogService:
 
     async def find_coins(self, params: FilterParams) -> CoinListResponse:
         if params.search:
-            return await self._hybrid_search(params)
+            return await self._coins_search(params)
         return await self._list_coins(params)
 
-    async def _hybrid_search(self, params: FilterParams) -> CoinListResponse:
+    async def _coins_search(self, params: FilterParams) -> CoinListResponse:
         assert params.search
         embedder = Embedder(self.config.ai_embedding_model)
         embed_result = await embedder.embed_query(params.search)

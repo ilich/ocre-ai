@@ -19,6 +19,7 @@ class User(Document):
     created_at: datetime
     updated_at: datetime
     reset_password_tokens: list[ResetPasswordToken] = []
+    collection: list[str] = []
 
     class Settings:
         name = "users"

@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:8000
 @username = user@example.com
 @password = SecurePass123!
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4MzQ4Nzk2fQ.GzCtdp0ZmwTeLMshCnOGypnpSP7XM1T3rTCA8DvjkUw
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4Mzg2MTU5fQ.cQH_2RKL81-oAGK9FhABkZnqttLWtYC68ILr-0JJ15U
 @searchQuery = What is the coin with PRINCIPI - IVVE-NTVTIS text on it and it was strike in Lugdunum only
 
 POST {{baseUrl}}/auth/sign-up
@@ -21,10 +21,6 @@ Content-Type: application/json
   "login": "{{username}}",
   "password": "{{password}}"
 }
-
-###
-GET {{baseUrl}}/user/me
-Authorization: Bearer {{token}}
 
 ###
 POST {{baseUrl}}/auth/forgot-password
@@ -53,9 +49,25 @@ Content-Type: application/json
   "new_password": "NewSecurePass123!"
 }
 
+###
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
 
 ###
 GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
+###
+POST {{baseUrl}}/user/collection
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "record_id": "ric.8.her.10"
+}
+
+###
+DELETE {{baseUrl}}/user/collection/ric.8.nic.1
+Authorization: Bearer {{token}}

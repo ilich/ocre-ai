@@ -27,14 +27,27 @@ def _settings() -> Settings:
     )
 
 
-def _user(email: str = "user@example.com", full_name: str = "Jane Doe", password: str | None = None) -> SimpleNamespace:
-    return SimpleNamespace(id=FAKE_USER_ID, email=email, full_name=full_name, password=password)
+def _user(
+    email: str = "user@example.com",
+    full_name: str = "Jane Doe",
+    password: str | None = None,
+    collection: list[str] | None = None,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=FAKE_USER_ID,
+        email=email,
+        full_name=full_name,
+        password=password,
+        collection=collection or [],
+    )
 
 
 def _mock_user_repository(current_user: object | None = None) -> MagicMock:
     repository = MagicMock(spec=UserRepository)
     repository.get_user_by_id = AsyncMock(return_value=current_user)
     repository.update_user = AsyncMock(return_value=None)
+    repository.add_coin_to_collection = AsyncMock(return_value=None)
+    repository.remove_coin_from_collection = AsyncMock(return_value=None)
     return repository
 
 
@@ -68,6 +81,7 @@ def test_get_me_returns_user_details() -> None:
         "id": str(FAKE_USER_ID),
         "email": "user@example.com",
         "full_name": "Jane Doe",
+        "collection": [],
     }
     repository.get_user_by_id.assert_awaited_once_with(str(FAKE_USER_ID))
 
@@ -191,3 +205,97 @@ def test_change_password_missing_new_password_returns_422() -> None:
     finally:
         app.dependency_overrides.clear()
     assert response.status_code == 422
+
+
+# --- POST /user/collection ---
+# Requirements:
+#   - An authenticated user can add a coin to their collection
+#   - An unauthenticated request returns 401
+#   - record_id is required and cannot be empty
+
+
+def test_add_coin_to_collection_returns_ok() -> None:
+    user = _user()
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/collection",
+            json={"record_id": "ric.1(2).aug.1"},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    repository.get_user_by_id.assert_awaited_once_with(str(FAKE_USER_ID))
+    repository.add_coin_to_collection.assert_awaited_once_with(user, "ric.1(2).aug.1")
+
+
+def test_add_coin_to_collection_unauthenticated_returns_401() -> None:
+    response = client.post("/user/collection", json={"record_id": "ric.1(2).aug.1"})
+
+    assert response.status_code == 401
+
+
+def test_add_coin_to_collection_missing_record_id_returns_422() -> None:
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/collection",
+            json={},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    repository.add_coin_to_collection.assert_not_called()
+
+
+def test_add_coin_to_collection_empty_record_id_returns_422() -> None:
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.post(
+            "/user/collection",
+            json={"record_id": ""},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    repository.add_coin_to_collection.assert_not_called()
+
+
+# --- DELETE /user/collection/{record_id} ---
+# Requirements:
+#   - An authenticated user can remove a coin from their collection
+#   - An unauthenticated request returns 401
+
+
+def test_remove_coin_from_collection_returns_ok() -> None:
+    user = _user(collection=["ric.1(2).aug.1"])
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        response = client.delete(
+            "/user/collection/ric.1(2).aug.1",
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    repository.get_user_by_id.assert_awaited_once_with(str(FAKE_USER_ID))
+    repository.remove_coin_from_collection.assert_awaited_once_with(user, "ric.1(2).aug.1")
+
+
+def test_remove_coin_from_collection_unauthenticated_returns_401() -> None:
+    response = client.delete("/user/collection/ric.1(2).aug.1")
+
+    assert response.status_code == 401
