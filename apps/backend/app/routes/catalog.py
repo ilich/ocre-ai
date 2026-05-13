@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
-from app.models.catalog import CoinImageDescriptionResponse, CoinListResponse, FilterParams, MetadataModel
+from app.models.catalog import CoinImageDescriptionResponse, CoinListResponse, CoinModel, FilterParams, MetadataModel
 from app.models.domain import User
 from app.services.authentication import get_current_user
 from app.services.catalog import CatalogService, get_catalog_service
@@ -52,3 +52,16 @@ async def get_metadata(
     service: Annotated[CatalogService, Depends(get_catalog_service)],
 ) -> list[MetadataModel]:
     return await service.get_coins_metadata()
+
+
+@router.get("/{record_id}", response_model=CoinModel)
+async def get_coin_by_id(
+    record_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CatalogService, Depends(get_catalog_service)],
+) -> CoinModel:
+    coin = await service.get_coin_by_id(record_id)
+    if not coin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coin not found")
+
+    return coin

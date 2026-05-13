@@ -64,6 +64,10 @@ class CatalogService:
     def __init__(self, config: Settings) -> None:
         self.config = config
 
+    async def get_coin_by_id(self, record_id: str) -> CoinModel | None:
+        coin = await Coin.find_one({"record_id": record_id}, fetch_links=True)
+        return _map_coin(coin) if coin else None
+
     async def find_coins(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
         if params.search:
             return await self._coins_search(params, user)
@@ -174,7 +178,7 @@ class CatalogService:
 
     async def get_coins_metadata(self) -> list[MetadataModel]:
         collection = Metadata.get_pymongo_collection()
-        pipeline = [
+        pipeline: list[dict[str, Any]] = [
             {"$group": {"_id": "$type", "values": {"$addToSet": "$value"}}},
             {"$project": {"_id": 0, "key": "$_id", "values": 1}},
         ]

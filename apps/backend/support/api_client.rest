@@ -75,6 +75,10 @@ Content-Type: image/jpeg
 GET {{baseUrl}}/catalog/metadata
 Authorization: Bearer {{token}}
 
+###
+GET {{baseUrl}}/catalog/ric.8.nic.1
+Authorization: Bearer {{token}}
+
 
 ###
 POST {{baseUrl}}/user/collection

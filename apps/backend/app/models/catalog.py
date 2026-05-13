@@ -55,4 +55,3 @@ class CoinImageDescriptionResponse(BaseModel):
 class MetadataModel(BaseModel):
     key: str
     values: list[str]
-
