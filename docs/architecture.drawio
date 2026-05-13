@@ -166,7 +166,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="4dz-EY8ky9l9nINh82gi" name="Backend Component Diagram">
-    <mxGraphModel dx="2292" dy="2088" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3317" dy="2731" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.fields import Password
 
@@ -7,6 +7,11 @@ class UserResponse(BaseModel):
     id: str
     full_name: str
     email: EmailStr
+    collection: list[str]
+
+
+class AddCoindToCollectionRequest(BaseModel):
+    record_id: str = Field(min_length=1, description="The OCRE record ID of the coin to add to the user's collection")
 
 
 class ChangePasswordRequest(BaseModel):

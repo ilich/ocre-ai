@@ -3,14 +3,17 @@ from typing import Any, AsyncGenerator
 
 from asgi_correlation_id import CorrelationIdMiddleware
 from beanie import init_beanie
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
 from app.core.logging import setup_logging
 from app.core.settings import get_settings
-from app.models.domain import User
-from app.routes import auth, health, user
+from app.models.domain import Coin, Geographic, Metadata, User
+from app.routes import auth, catalog, chat, health, user
+
+load_dotenv()
 
 
 @asynccontextmanager
@@ -18,7 +21,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
     config = get_settings()
     client: AsyncMongoClient[Any] = AsyncMongoClient(config.mongodb_uri)
-    await init_beanie(database=client.get_database(config.mongodb_database), document_models=[User])
+    await init_beanie(
+        database=client.get_database(config.mongodb_database), document_models=[User, Geographic, Coin, Metadata]
+    )
     yield
     await client.close()
 
@@ -37,3 +42,5 @@ app.add_middleware(
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(user.router, prefix="/user", tags=["user"])
+app.include_router(catalog.router, prefix="/catalog", tags=["catalog"])
+app.include_router(chat.router, prefix="/chat", tags=["chat"])

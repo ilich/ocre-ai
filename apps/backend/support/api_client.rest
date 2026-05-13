@@ -1,0 +1,94 @@
+@baseUrl = http://localhost:8000
+@username = user@example.com
+@password = SecurePass123!
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjlmYWYwMDIwYTljYTg1ZDVkMTExODUyIiwiZXhwIjoxNzc4Njg4NjYyfQ.wO-Dy80qN-jQpWB4yqSS1F3_oxx-pxi3uocaPPLAxag
+@searchQuery = Roman coin of Constantius II, 351-355 AD, AE3. Obverse: Laureate head right. Legend: “DN CONSTAN-TIVS P F AVG”. Reverse: Soldier standing left, holding spear and shield, receiving victory from a female figure. Legend: “VICTO-RIAE AVGG”. Translation: “Victories of the Augusti”. Keywords: Constantius II, AE3, Roman Empire, victory, soldier, female personification. Authenticity notes: Well-preserved, typical wear for the period.
+
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{
+  "email": "{{username}}",
+  "password": "{{password}}",
+  "full_name": "John Doe"
+}
+
+###
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{
+  "login": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{username}}"
+}
+
+###
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "GcRoGWHH36xqfTYMKaJBiZrZN_MJAp7TINk3HatBUi8",
+  "new_password": "{{password}}"
+}
+
+###
+POST {{baseUrl}}/user/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "old_password": "{{password}}",
+  "new_password": "NewSecurePass123!"
+}
+
+###
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
+
+###
+GET {{baseUrl}}/catalog?search={{searchQuery}}&denomination=Solidus&authority=Constantius II&my=false
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+###
+POST {{baseUrl}}/catalog/image
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=coin-image-boundary
+
+--coin-image-boundary
+Content-Disposition: form-data; name="image"; filename="coin.jpg"
+Content-Type: image/jpeg
+
+< ./tests/images/coin1.jpg
+--coin-image-boundary--
+
+###
+GET {{baseUrl}}/catalog/metadata
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/catalog/ric.8.nic.1
+Authorization: Bearer {{token}}
+
+
+###
+POST {{baseUrl}}/user/collection
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "record_id": "ric.8.her.10"
+}
+
+###
+DELETE {{baseUrl}}/user/collection/ric.8.nic.1
+Authorization: Bearer {{token}}
