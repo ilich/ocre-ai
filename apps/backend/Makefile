@@ -18,5 +18,5 @@ test:
 	uv run ruff check --select I --fix .
 	uv run ruff check .
 	uv run mypy .
-	uv run pytest -vv
+	uv run pytest -vv --cov=. --cov-report=term-missing
 	

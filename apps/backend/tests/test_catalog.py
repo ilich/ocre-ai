@@ -8,8 +8,8 @@ from fastapi.testclient import TestClient
 
 from app.core.settings import Settings
 from app.main import app
-from app.models.catalog import CoinListResponse, FilterParams
-from app.models.domain import Coin, Geographic
+from app.models.catalog import CoinListResponse, CoinModel, FilterParams, MetadataModel
+from app.models.domain import Coin, Geographic, Metadata
 from app.services.authentication import get_current_user
 from app.services.catalog import CatalogService, _build_filter, _map_coin, get_catalog_service
 from app.services.vision import get_vision
@@ -102,10 +102,24 @@ def _authenticated_user() -> SimpleNamespace:
     return SimpleNamespace(id=ObjectId(), email="user@example.com", collection=["rrc.1.1"])
 
 
-def _mock_catalog_service(response: CoinListResponse | None = None) -> MagicMock:
+def _mock_catalog_service(
+    response: CoinListResponse | None = None,
+    coin: CoinModel | None = None,
+    metadata: list[MetadataModel] | None = None,
+) -> MagicMock:
     service = MagicMock(spec=CatalogService)
     service.find_coins = AsyncMock(return_value=response or CoinListResponse(items=[], total=0))
+    service.get_coin_by_id = AsyncMock(return_value=coin)
+    service.get_coins_metadata = AsyncMock(return_value=metadata or [])
     return service
+
+
+def _mock_metadata_collection(rows: list[dict[str, Any]] | None = None) -> MagicMock:
+    cursor = AsyncMock()
+    cursor.to_list = AsyncMock(return_value=rows or [])
+    collection = MagicMock()
+    collection.aggregate = AsyncMock(return_value=cursor)
+    return collection
 
 
 def test_find_coins_by_record_ids_fetches_and_preserves_requested_order() -> None:
@@ -490,3 +504,191 @@ def test_describe_coin_image_unauthenticated_returns_401() -> None:
     assert response.status_code == 401
     vision.describe.assert_not_called()
     agent.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# GET /catalog/metadata — route
+# ---------------------------------------------------------------------------
+
+
+def test_get_metadata_returns_list_of_metadata() -> None:
+    metadata = [
+        MetadataModel(key="denomination", values=["denarius", "aureus"]),
+        MetadataModel(key="material", values=["silver", "gold"]),
+    ]
+    service = _mock_catalog_service(metadata=metadata)
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog/metadata")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    assert body[0] == {"key": "denomination", "values": ["denarius", "aureus"]}
+    assert body[1] == {"key": "material", "values": ["silver", "gold"]}
+    service.get_coins_metadata.assert_awaited_once()
+
+
+def test_get_metadata_unauthenticated_returns_401() -> None:
+    service = _mock_catalog_service()
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog/metadata")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    service.get_coins_metadata.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# get_coins_metadata — service
+# ---------------------------------------------------------------------------
+
+
+def test_get_coins_metadata_returns_aggregated_types() -> None:
+    service = _service()
+    rows = [
+        {"key": "denomination", "values": ["denarius"]},
+        {"key": "material", "values": ["silver"]},
+    ]
+    mock_col = _mock_metadata_collection(rows)
+    with (
+        patch.object(Metadata, "get_pymongo_collection", return_value=mock_col),
+        patch.object(Geographic, "find", return_value=_mock_find_query(coins=[])),
+    ):
+        result = asyncio.run(service.get_coins_metadata())
+
+    assert any(m.key == "denomination" and m.values == ["denarius"] for m in result)
+    assert any(m.key == "material" and m.values == ["silver"] for m in result)
+
+
+def test_get_coins_metadata_appends_geographic_entry() -> None:
+    service = _service()
+    geo = MagicMock(spec=Geographic)
+    geo.name = "Rome"
+    mock_col = _mock_metadata_collection([])
+    with (
+        patch.object(Metadata, "get_pymongo_collection", return_value=mock_col),
+        patch.object(Geographic, "find", return_value=_mock_find_query(coins=[geo])),
+    ):
+        result = asyncio.run(service.get_coins_metadata())
+
+    geo_entry = next(m for m in result if m.key == "geographic")
+    assert geo_entry.values == ["Rome"]
+
+
+def test_get_coins_metadata_geographic_values_are_sorted_and_deduplicated() -> None:
+    service = _service()
+    geo1 = MagicMock(spec=Geographic)
+    geo1.name = "Lugdunum"
+    geo2 = MagicMock(spec=Geographic)
+    geo2.name = "Antioch"
+    geo3 = MagicMock(spec=Geographic)
+    geo3.name = "Lugdunum"  # duplicate
+    mock_col = _mock_metadata_collection([])
+    with (
+        patch.object(Metadata, "get_pymongo_collection", return_value=mock_col),
+        patch.object(Geographic, "find", return_value=_mock_find_query(coins=[geo1, geo2, geo3])),
+    ):
+        result = asyncio.run(service.get_coins_metadata())
+
+    geo_entry = next(m for m in result if m.key == "geographic")
+    assert geo_entry.values == ["Antioch", "Lugdunum"]
+
+
+# ---------------------------------------------------------------------------
+# GET /catalog/{record_id} — route
+# ---------------------------------------------------------------------------
+
+
+def test_get_coin_by_id_returns_coin_when_found() -> None:
+    coin = CoinModel(
+        id="rrc.1.1",
+        title="Test Coin",
+        description="A test description",
+        object_type="Coin",
+        date_range=None,
+        denomination=["denarius"],
+        manufacturer=[],
+        material=["silver"],
+        authority=["Augustus"],
+        geographic=[],
+        images=["img.jpg"],
+    )
+    service = _mock_catalog_service(coin=coin)
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog/rrc.1.1")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == "rrc.1.1"
+    assert body["title"] == "Test Coin"
+    service.get_coin_by_id.assert_awaited_once_with("rrc.1.1")
+
+
+def test_get_coin_by_id_returns_404_when_not_found() -> None:
+    service = _mock_catalog_service(coin=None)
+    app.dependency_overrides[get_current_user] = _authenticated_user
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog/rrc.missing")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Coin not found"
+    service.get_coin_by_id.assert_awaited_once_with("rrc.missing")
+
+
+def test_get_coin_by_id_unauthenticated_returns_401() -> None:
+    service = _mock_catalog_service()
+    app.dependency_overrides[get_catalog_service] = lambda: service
+    try:
+        response = client.get("/catalog/rrc.1.1")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    service.get_coin_by_id.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# get_coin_by_id — service
+# ---------------------------------------------------------------------------
+
+
+def test_get_coin_by_id_service_returns_coin_when_found() -> None:
+    service = _service()
+    coin = _make_coin(record_id="rrc.1.1", title="Test Coin")
+    with patch.object(Coin, "find_one", new=AsyncMock(return_value=coin)):
+        result = asyncio.run(service.get_coin_by_id("rrc.1.1"))
+
+    assert result is not None
+    assert result.id == "rrc.1.1"
+    assert result.title == "Test Coin"
+
+
+def test_get_coin_by_id_service_queries_by_record_id() -> None:
+    service = _service()
+    coin = _make_coin(record_id="rrc.2.1")
+    mock_find_one = AsyncMock(return_value=coin)
+    with patch.object(Coin, "find_one", new=mock_find_one):
+        asyncio.run(service.get_coin_by_id("rrc.2.1"))
+
+    mock_find_one.assert_awaited_once_with({"record_id": "rrc.2.1"}, fetch_links=True)
+
+
+def test_get_coin_by_id_service_returns_none_when_not_found() -> None:
+    service = _service()
+    with patch.object(Coin, "find_one", new=AsyncMock(return_value=None)):
+        result = asyncio.run(service.get_coin_by_id("rrc.missing"))
+
+    assert result is None
