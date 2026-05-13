@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
-from app.models.catalog import CoinImageDescriptionResponse, CoinListResponse, FilterParams
+from app.models.catalog import CoinImageDescriptionResponse, CoinListResponse, FilterParams, MetadataModel
 from app.models.domain import User
 from app.services.authentication import get_current_user
 from app.services.catalog import CatalogService, get_catalog_service
@@ -44,3 +44,11 @@ async def describe_coin_image(
 
     description = await vision.describe(await image.read(), content_type)
     return CoinImageDescriptionResponse(description=description)
+
+
+@router.get("/metadata", response_model=list[MetadataModel])
+async def get_metadata(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CatalogService, Depends(get_catalog_service)],
+) -> list[MetadataModel]:
+    return await service.get_coins_metadata()

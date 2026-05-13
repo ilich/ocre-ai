@@ -50,3 +50,9 @@ class CoinListResponse(BaseModel):
 
 class CoinImageDescriptionResponse(BaseModel):
     description: str
+
+
+class MetadataModel(BaseModel):
+    key: str
+    values: list[str]
+

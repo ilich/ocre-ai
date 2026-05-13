@@ -1,11 +1,14 @@
 services:
   mongodb:
     image: mongodb/mongodb-atlas-local
-    profiles: [dev]
+    hostname: mongodb
     ports:
-      - "27017:27017"
+      - 27017:27017
     volumes:
-      - mongodb_data:/data/db
+      - ./init:/docker-entrypoint-initdb.d
+      - db:/data/db
+      - configdb:/data/configdb
+      - mongot:/data/mongot
 
   mailpit:
     image: axllent/mailpit:latest
@@ -18,4 +21,6 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
 volumes:
-  mongodb_data:
+  db:
+  configdb:
+  mongot:

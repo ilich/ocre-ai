@@ -5,8 +5,8 @@ from fastapi import Depends
 from pydantic_ai import Embedder
 
 from app.core.settings import Settings, get_settings
-from app.models.catalog import CoinListResponse, CoinModel, FilterParams
-from app.models.domain import Coin, Geographic, User
+from app.models.catalog import CoinListResponse, CoinModel, FilterParams, MetadataModel
+from app.models.domain import Coin, Geographic, Metadata, User
 
 VECTOR_INDEX = "coins_vector_search"
 TEXT_INDEX = "coins_text_search"
@@ -171,6 +171,24 @@ class CatalogService:
             str(coin.id): coin for coin in await Coin.find({"_id": {"$in": object_ids}}, fetch_links=True).to_list()
         }
         return [_map_coin(coins_by_id[id]) for id in ids if id in coins_by_id]
+
+    async def get_coins_metadata(self) -> list[MetadataModel]:
+        collection = Metadata.get_pymongo_collection()
+        pipeline = [
+            {"$group": {"_id": "$type", "values": {"$addToSet": "$value"}}},
+            {"$project": {"_id": 0, "key": "$_id", "values": 1}},
+        ]
+        cursor = await collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=None)
+        data = [MetadataModel(**row) for row in rows]
+
+        geo_data = await Geographic.find().to_list()
+        geo_metadata = MetadataModel(
+            key="geographic",
+            values=sorted({geo.name for geo in geo_data if isinstance(geo, Geographic)}),
+        )
+        data.append(geo_metadata)
+        return data
 
 
 def get_catalog_service(
