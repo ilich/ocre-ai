@@ -1,21 +1,24 @@
-import { useAuthStore } from "~/store/auth";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
+import ChangePasswordPanel from "~/features/profile/components/ChangePasswordPanel";
+import ProfileInfoPanel from "~/features/profile/components/ProfileInfoPanel";
 
 export function meta() {
   return [{ title: "Profile — The AI-Based Roman Coin Identification System" }];
 }
 
 export default function ProfilePage() {
-  const user = useAuthStore((s) => s.user);
-
   return (
-    <main>
-      <h1>Profile</h1>
-      {user && (
-        <p>
-          {user.full_name} ({user.email})
-        </p>
-      )}
-      <p>Profile page — content coming soon.</p>
-    </main>
+    <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+        Profile
+      </Typography>
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <ProfileInfoPanel />
+        <ChangePasswordPanel />
+      </Box>
+    </Container>
   );
 }

@@ -2,9 +2,9 @@ import { useNavigate, Link } from "react-router";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import MuiLink from "@mui/material/Link";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuthStore } from "~/store/auth";
 
@@ -38,14 +38,16 @@ export default function AppHeader() {
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {user && (
-            <MuiLink
+            <Button
               component={Link}
               to="/profile"
-              variant="body2"
-              sx={{ color: "inherit", opacity: 0.85, textDecoration: "none", "&:hover": { opacity: 1 } }}
+              color="inherit"
+              startIcon={<AccountCircleIcon />}
+              size="small"
+              sx={{ opacity: 0.85, "&:hover": { opacity: 1 } }}
             >
               {user.full_name}
-            </MuiLink>
+            </Button>
           )}
           <Button
             color="inherit"
