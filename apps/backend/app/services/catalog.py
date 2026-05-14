@@ -1,5 +1,6 @@
 from typing import Annotated, Any
 
+from beanie import SortDirection
 from bson import ObjectId
 from fastapi import Depends
 from pydantic_ai import Embedder
@@ -40,6 +41,8 @@ async def _build_filter(params: FilterParams, user: User | None = None) -> dict[
         f["material"] = params.material
     if params.authority is not None:
         f["authority"] = params.authority
+    if params.object_type is not None:
+        f["object_type"] = params.object_type
     if params.geographic is not None:
         geo_doc = await Geographic.find_one({"name": params.geographic})
         if geo_doc:
@@ -166,8 +169,8 @@ class CatalogService:
         query = Coin.find(mongo_filter)
 
         if params.order_by != "relevance":
-            prefix = "" if params.order_direction == "asc" else "-"
-            query = query.sort(f"{prefix}{_SORT_FIELD[params.order_by]}")
+            direction = SortDirection.ASCENDING if params.order_direction == "asc" else SortDirection.DESCENDING
+            query = query.sort([(_SORT_FIELD[params.order_by], direction), ("record_id", SortDirection.ASCENDING)])
 
         total = await query.count()
         page = await query.skip(params.skip).limit(params.limit).to_list()

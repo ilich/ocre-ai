@@ -2,6 +2,7 @@ import { apiClient } from "./api";
 import type {
   CoinImageDescriptionResponse,
   CoinListResponse,
+  CoinModel,
   MetadataItem,
 } from "~/features/catalog/types";
 
@@ -26,6 +27,7 @@ export interface FindCoinsParams {
   denomination?: string | null;
   manufacturer?: string | null;
   material?: string | null;
+  object_type?: string | null;
   authority?: string | null;
   geographic?: string | null;
   order_by?: CatalogOrderBy;
@@ -47,6 +49,9 @@ export const catalogService = {
     const qs = query.toString();
     return apiClient.get<CoinListResponse>(`/catalog${qs ? `?${qs}` : ""}`);
   },
+
+  getCoinById: (id: string) =>
+    apiClient.get<CoinModel>(`/catalog/${id}`),
 
   describeImage: (image: File) => {
     const form = new FormData();

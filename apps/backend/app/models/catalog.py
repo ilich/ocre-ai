@@ -9,6 +9,7 @@ class FilterParams(BaseModel):
     to_year: int | None = None
     denomination: str | None = None
     manufacturer: str | None = None
+    object_type: str | None = None
     material: str | None = None
     authority: str | None = None
     geographic: str | None = None

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from beanie import SortDirection
 from bson import ObjectId
 from fastapi.testclient import TestClient
 
@@ -303,7 +304,9 @@ def test_list_coins_applies_sort() -> None:
     mock_query = _mock_find_query()
     with patch.object(Coin, "find", return_value=mock_query):
         asyncio.run(service._list_coins(FilterParams(order_by="title", order_direction="desc")))
-    mock_query.sort.assert_called_once_with("-title")
+    mock_query.sort.assert_called_once_with(
+        [("title", SortDirection.DESCENDING), ("record_id", SortDirection.ASCENDING)]
+    )
 
 
 def test_list_coins_no_sort_when_order_by_relevance() -> None:
@@ -319,7 +322,9 @@ def test_list_coins_ascending_sort() -> None:
     mock_query = _mock_find_query()
     with patch.object(Coin, "find", return_value=mock_query):
         asyncio.run(service._list_coins(FilterParams(order_by="from_year", order_direction="asc")))
-    mock_query.sort.assert_called_once_with("from_year")
+    mock_query.sort.assert_called_once_with(
+        [("from_year", SortDirection.ASCENDING), ("record_id", SortDirection.ASCENDING)]
+    )
 
 
 # ---------------------------------------------------------------------------

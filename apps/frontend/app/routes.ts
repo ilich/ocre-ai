@@ -7,6 +7,7 @@ export default [
   route("reset-password/:token", "routes/reset-password.tsx"),
   layout("routes/private-layout.tsx", [
     route("catalog", "routes/catalog.tsx"),
+    route("catalog/:id", "routes/catalog-detail.tsx"),
     route("profile", "routes/profile.tsx"),
   ]),
 ] satisfies RouteConfig;

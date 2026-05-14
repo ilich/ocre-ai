@@ -10,9 +10,16 @@ import type { KeywordSearchState } from "../../types";
 interface SearchPanelProps {
   state: KeywordSearchState;
   onChange: (state: KeywordSearchState) => void;
+  onSearch: () => void;
+  searchDisabled?: boolean;
 }
 
-export default function SearchPanel({ state, onChange }: SearchPanelProps) {
+export default function SearchPanel({
+  state,
+  onChange,
+  onSearch,
+  searchDisabled,
+}: SearchPanelProps) {
   const [tab, setTab] = useState(0);
 
   return (
@@ -30,7 +37,14 @@ export default function SearchPanel({ state, onChange }: SearchPanelProps) {
       </Tabs>
 
       <Box>
-        {tab === 0 && <KeywordSearch state={state} onChange={onChange} />}
+        {tab === 0 && (
+          <KeywordSearch
+            state={state}
+            onChange={onChange}
+            onSearch={onSearch}
+            searchDisabled={searchDisabled}
+          />
+        )}
         {tab === 1 && <ImageSearch />}
       </Box>
     </Paper>
