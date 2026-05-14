@@ -1,4 +1,6 @@
 import { redirect } from "react-router";
+import AuthCard from "~/features/auth/components/AuthCard";
+import LoginForm from "~/features/auth/components/LoginForm";
 import { isAuthenticated } from "~/lib/auth";
 
 export async function clientLoader() {
@@ -9,14 +11,13 @@ export async function clientLoader() {
 }
 
 export function meta() {
-  return [{ title: "Sign In" }];
+  return [{ title: "Sign In — The AI-Based Roman Coin Identification System" }];
 }
 
 export default function LoginPage() {
   return (
-    <main>
-      <h1>Sign In</h1>
-      <p>Login page — form coming soon.</p>
-    </main>
+    <AuthCard title="Sign in to your account">
+      <LoginForm />
+    </AuthCard>
   );
 }
