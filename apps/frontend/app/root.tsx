@@ -14,6 +14,7 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import type { Route } from "./+types/root";
 import Footer from "~/components/layout/Footer";
 import theme from "~/theme";
+import "~/lib/init-color-scheme";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [

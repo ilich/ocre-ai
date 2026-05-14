@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models.core import BaseResponse
 from app.models.domain import User
-from app.models.user import AddCoindToCollectionRequest, ChangePasswordRequest, UserResponse
+from app.models.user import AddCoindToCollectionRequest, ChangePasswordRequest, ChangeProfileRequest, UserResponse
 from app.services.authentication import get_current_user
 from app.services.user_repository import UserRepository, get_user_repository
 
@@ -12,6 +12,22 @@ router = APIRouter()
 
 @router.get("/me", response_model=UserResponse)
 async def get_profile(user: User = Depends(get_current_user)) -> UserResponse:
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        collection=user.collection,
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+async def change_profile(
+    body: ChangeProfileRequest,
+    user: User = Depends(get_current_user),
+    user_repository: UserRepository = Depends(get_user_repository),
+) -> UserResponse:
+    user.full_name = body.full_name
+    await user_repository.update_user(user)
     return UserResponse(
         id=str(user.id),
         email=user.email,

@@ -1,5 +1,5 @@
 export function meta() {
-  return [{ title: "Catalog — OCRE.AI" }];
+  return [{ title: "Catalog — The AI-Based Roman Coin Identification System" }];
 }
 
 export default function CatalogPage() {

@@ -70,6 +70,9 @@ export const apiClient = {
       token: opts?.auth !== false ? getStoredToken() : undefined,
     }),
 
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: "PUT", body, token: getStoredToken() }),
+
   delete: <T>(path: string) =>
     request<T>(path, { method: "DELETE", token: getStoredToken() }),
 };

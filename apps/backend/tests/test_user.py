@@ -115,6 +115,93 @@ def test_get_me_invalid_token_returns_401() -> None:
     repository.get_user_by_id.assert_not_called()
 
 
+# --- PUT /user/me ---
+# Requirements:
+#   - An authenticated user can update their full_name and receives 200 with updated profile
+#   - update_user is called with the modified user object
+#   - An unauthenticated request returns 401
+#   - full_name is a required field (422)
+#   - full_name cannot be empty (422)
+
+
+def test_change_profile_returns_updated_user() -> None:
+    user = _user(full_name="Jane Doe")
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        response = client.put(
+            "/user/me",
+            json={"full_name": "Jane Smith"},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "id": str(FAKE_USER_ID),
+        "email": "user@example.com",
+        "full_name": "Jane Smith",
+        "collection": [],
+    }
+    repository.update_user.assert_awaited_once_with(user)
+
+
+def test_change_profile_calls_update_user_with_new_name() -> None:
+    user = _user(full_name="Old Name")
+    repository = _mock_user_repository(current_user=user)
+    _override_user_repository(repository)
+    try:
+        client.put(
+            "/user/me",
+            json={"full_name": "New Name"},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert user.full_name == "New Name"
+    repository.update_user.assert_awaited_once_with(user)
+
+
+def test_change_profile_unauthenticated_returns_401() -> None:
+    response = client.put("/user/me", json={"full_name": "Jane Smith"})
+    assert response.status_code == 401
+
+
+def test_change_profile_missing_full_name_returns_422() -> None:
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.put(
+            "/user/me",
+            json={},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    repository.update_user.assert_not_called()
+
+
+def test_change_profile_empty_full_name_returns_422() -> None:
+    repository = _mock_user_repository(current_user=_user())
+    _override_user_repository(repository)
+    try:
+        response = client.put(
+            "/user/me",
+            json={"full_name": ""},
+            headers={"Authorization": f"Bearer {_access_token()}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    repository.update_user.assert_not_called()
+
+
 # --- POST /user/change-password ---
 # Requirements:
 #   - Correct old password and a strong new password return 200 with success=True

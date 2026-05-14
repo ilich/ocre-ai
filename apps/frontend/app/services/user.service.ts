@@ -18,9 +18,8 @@ export const userService = {
   getMe: (token?: string) =>
     apiClient.get<AuthUser>("/user/me", { token }),
 
-  // Stub — replace with real endpoint once backend is ready
-  updateProfile: (_body: UpdateProfileRequest): Promise<AuthUser> =>
-    Promise.reject(new Error("updateProfile: backend not implemented yet")),
+  updateProfile: (body: UpdateProfileRequest) =>
+    apiClient.put<AuthUser>("/user/me", body),
 
   changePassword: (body: ChangePasswordRequest) =>
     apiClient.post<BaseResponse>("/user/change-password", body),

@@ -7,12 +7,12 @@ import Typography from "@mui/material/Typography";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuthStore } from "~/store/auth";
+import ColorSchemeToggle from "~/components/ColorSchemeToggle";
 
 export default function AppHeader() {
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const navigate = useNavigate();
-
   function handleLogout() {
     clearAuth();
     navigate("/");
@@ -37,6 +37,7 @@ export default function AppHeader() {
         </Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <ColorSchemeToggle />
           {user && (
             <Button
               component={Link}
