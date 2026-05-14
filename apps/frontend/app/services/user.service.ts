@@ -11,7 +11,8 @@ export interface ChangePasswordRequest {
 }
 
 export interface BaseResponse {
-  message: string;
+  success: boolean;
+  message?: string | null;
 }
 
 export const userService = {
@@ -23,4 +24,10 @@ export const userService = {
 
   changePassword: (body: ChangePasswordRequest) =>
     apiClient.post<BaseResponse>("/user/change-password", body),
+
+  addToCollection: (record_id: string) =>
+    apiClient.post<BaseResponse>("/user/collection", { record_id }),
+
+  removeFromCollection: (record_id: string) =>
+    apiClient.delete<BaseResponse>(`/user/collection/${record_id}`),
 };

@@ -17,6 +17,8 @@ export interface SignUpRequest {
 }
 
 export interface SignUpResponse {
+  success: boolean;
+  message?: string | null;
   id: string;
   email: string;
   full_name: string;
@@ -32,12 +34,13 @@ export interface SetNewPasswordRequest {
 }
 
 export interface BaseResponse {
-  message: string;
+  success: boolean;
+  message?: string | null;
 }
 
 export const authService = {
   signIn: (body: SignInRequest) =>
-    apiClient.post<SignInResponse>("/auth/sign-in", body, { auth: false }),
+    apiClient.post<SignInResponse>("/auth/sign-in", body, { auth: false, skipAuthRedirect: true }),
 
   signUp: (body: SignUpRequest) =>
     apiClient.post<SignUpResponse>("/auth/sign-up", body, { auth: false }),
