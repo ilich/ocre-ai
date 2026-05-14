@@ -1,16 +1,7 @@
-import { redirect } from "react-router";
-import { isAuthenticated } from "~/lib/auth";
 import { useAuthStore } from "~/store/auth";
 
-export async function clientLoader() {
-  if (!isAuthenticated()) {
-    return redirect("/");
-  }
-  return null;
-}
-
 export function meta() {
-  return [{ title: "Profile" }];
+  return [{ title: "Profile — The AI-Based Roman Coin Identification System" }];
 }
 
 export default function ProfilePage() {

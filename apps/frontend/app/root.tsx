@@ -6,11 +6,13 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 import type { Route } from "./+types/root";
+import Footer from "~/components/layout/Footer";
 import theme from "~/theme";
 import "./app.css";
 
@@ -40,7 +42,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <InitColorSchemeScript attribute="class" />
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          {children}
+          <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+            <Box component="main" sx={{ flex: 1 }}>
+              {children}
+            </Box>
+            <Footer />
+          </Box>
         </ThemeProvider>
         <ScrollRestoration />
         <Scripts />

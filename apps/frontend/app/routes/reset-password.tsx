@@ -3,7 +3,7 @@ import AuthCard from "~/features/auth/components/AuthCard";
 import ResetPasswordForm from "~/features/auth/components/ResetPasswordForm";
 
 export function meta() {
-  return [{ title: "Reset Password — OCRE.AI" }];
+  return [{ title: "Reset Password — The AI-Based Roman Coin Identification System" }];
 }
 
 export default function ResetPasswordPage({ params }: Route.ComponentProps) {

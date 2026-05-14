@@ -1,15 +1,5 @@
-import { redirect } from "react-router";
-import { isAuthenticated } from "~/lib/auth";
-
-export async function clientLoader() {
-  if (!isAuthenticated()) {
-    return redirect("/");
-  }
-  return null;
-}
-
 export function meta() {
-  return [{ title: "Catalog" }];
+  return [{ title: "Catalog — OCRE.AI" }];
 }
 
 export default function CatalogPage() {
