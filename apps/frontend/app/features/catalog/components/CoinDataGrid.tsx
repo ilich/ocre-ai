@@ -3,6 +3,10 @@ import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import type { GridColDef, GridSortModel } from "@mui/x-data-grid";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import type { CoinModel } from "../types";
 import type { PaginationModel } from "../hooks/useCatalogSearch";
 
@@ -84,19 +88,23 @@ export default function CoinDataGrid({
         const inCollection = collectionIds.has(row.id);
         return (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", height: "100%" }}>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={collectionLoading}
-              onClick={(e) => {
-                e.stopPropagation();
-                inCollection
-                  ? onRemoveFromCollection(row.id)
-                  : onAddToCollection(row.id);
-              }}
-            >
-              {inCollection ? "Remove" : "Add"}
-            </Button>
+            <Tooltip title={inCollection ? "Remove from collection" : "Add to collection"}>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={collectionLoading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    inCollection
+                      ? onRemoveFromCollection(row.id)
+                      : onAddToCollection(row.id);
+                  }}
+                  color={inCollection ? "warning" : "default"}
+                >
+                  {inCollection ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                </IconButton>
+              </span>
+            </Tooltip>
             <Button
               size="small"
               onClick={(e) => {
