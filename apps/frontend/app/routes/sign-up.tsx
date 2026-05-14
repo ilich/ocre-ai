@@ -1,12 +1,14 @@
+import AuthCard from "~/features/auth/components/AuthCard";
+import SignUpForm from "~/features/auth/components/SignUpForm";
+
 export function meta() {
-  return [{ title: "Create Account" }];
+  return [{ title: "Create Account — OCRE.AI" }];
 }
 
 export default function SignUpPage() {
   return (
-    <main>
-      <h1>Create Account</h1>
-      <p>Sign up page — form coming soon.</p>
-    </main>
+    <AuthCard title="Create your account">
+      <SignUpForm />
+    </AuthCard>
   );
 }
