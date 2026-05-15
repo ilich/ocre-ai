@@ -3,6 +3,7 @@ import AppHeader from "~/components/layout/AppHeader";
 import ChatFab from "~/features/chat/components/ChatFab";
 import ChatPopup from "~/features/chat/components/ChatPopup";
 import { isAuthenticated } from "~/lib/auth";
+import { useLocation } from "react-router";
 
 export async function clientLoader() {
   if (!isAuthenticated()) {
@@ -12,12 +13,18 @@ export async function clientLoader() {
 }
 
 export default function PrivateLayout() {
+  const location = useLocation();
+  const showChat = location.pathname.startsWith("/catalog");
   return (
     <>
       <AppHeader />
       <Outlet />
-      <ChatFab />
-      <ChatPopup />
+      {showChat && (
+        <>
+          <ChatFab />
+          <ChatPopup />
+        </>
+      )}
     </>
   );
 }
