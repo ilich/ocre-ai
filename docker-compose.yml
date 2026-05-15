@@ -12,13 +12,32 @@ services:
 
   mailpit:
     image: axllent/mailpit:latest
-    profiles: [dev]
+    profiles: [dev, full]
     ports:
       - "1025:1025"
       - "8025:8025"
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  backend:
+    build:
+      context: ./apps/backend
+    profiles: [full]
+    env_file: .env.docker
+    depends_on:
+      - mongodb
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      args:
+        VITE_API_BASE_URL: /api
+    profiles: [full]
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   db:
