@@ -26,6 +26,7 @@ export interface UseCatalogSearchReturn {
   searchState: KeywordSearchState;
   setSearchState: (s: KeywordSearchState) => void;
   commitSearch: () => void;
+  commitSearchWith: (text: string) => void;
   onPaginationModelChange: (m: PaginationModel) => void;
   onSortModelChange: (m: GridSortModel) => void;
   gridApiRef: ReturnType<typeof useGridApiRef>;
@@ -159,6 +160,12 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
     writeUrl(liveQuery, filters, myCollection);
   }
 
+  function commitSearchWith(text: string) {
+    setLiveQuery(text);
+    resetPage();
+    writeUrl(text, filters, myCollection);
+  }
+
   function onPaginationModelChange(m: PaginationModel) {
     setPage(m.page);
     setPageSize(m.pageSize);
@@ -177,6 +184,7 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
     searchState,
     setSearchState,
     commitSearch,
+    commitSearchWith,
     onPaginationModelChange,
     onSortModelChange,
     gridApiRef,

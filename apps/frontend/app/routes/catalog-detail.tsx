@@ -13,6 +13,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useCoinDetail } from "~/features/catalog/hooks/useCoinDetail";
 import { useChatStore } from "~/store/chat";
 import type { Route } from "./+types/catalog-detail";
+import Link from "@mui/material/Link";
 
 export function meta() {
   return [{ title: "Coin Detail — The AI-Based Roman Coin Identification System" }];
@@ -87,7 +88,7 @@ export default function CatalogDetailPage({ params }: Route.ComponentProps) {
             {coin.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 3 }}>
-            Record ID: {coin.id}
+            Record ID: <Link href={`https://numismatics.org/ocre/id/${coin.id}`} target="_blank" rel="noopener noreferrer">{coin.id}</Link>
           </Typography>
 
           <Divider sx={{ mb: 3 }} />

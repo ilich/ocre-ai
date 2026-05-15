@@ -11,6 +11,7 @@ interface SearchPanelProps {
   state: KeywordSearchState;
   onChange: (state: KeywordSearchState) => void;
   onSearch: () => void;
+  onImageSearchResult: (description: string) => void;
   searchDisabled?: boolean;
 }
 
@@ -18,9 +19,15 @@ export default function SearchPanel({
   state,
   onChange,
   onSearch,
+  onImageSearchResult,
   searchDisabled,
 }: SearchPanelProps) {
   const [tab, setTab] = useState(0);
+
+  function handleImageSearchResult(description: string) {
+    onImageSearchResult(description);
+    setTab(0); // switch to Keyword Search so user sees the populated query
+  }
 
   return (
     <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 3, p: 3 }}>
@@ -42,7 +49,9 @@ export default function SearchPanel({
             searchDisabled={searchDisabled}
           />
         )}
-        {tab === 1 && <ImageSearch />}
+        {tab === 1 && (
+          <ImageSearch onSearchResult={handleImageSearchResult} disabled={searchDisabled} />
+        )}
       </Box>
     </Paper>
   );

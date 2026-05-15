@@ -17,6 +17,7 @@ export default function CatalogPage() {
     searchState,
     setSearchState,
     commitSearch,
+    commitSearchWith,
     onPaginationModelChange,
     onSortModelChange,
     gridApiRef,
@@ -48,6 +49,7 @@ export default function CatalogPage() {
           state={searchState}
           onChange={setSearchState}
           onSearch={commitSearch}
+          onImageSearchResult={commitSearchWith}
           searchDisabled={loading}
         />
 
