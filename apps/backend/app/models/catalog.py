@@ -7,10 +7,12 @@ class FilterParams(BaseModel):
     search: str | None = None
     from_year: int | None = None
     to_year: int | None = None
-    denomination: list[str] = []
-    manufacturer: list[str] = []
-    material: list[str] = []
-    authority: list[str] = []
+    denomination: str | None = None
+    manufacturer: str | None = None
+    object_type: str | None = None
+    material: str | None = None
+    authority: str | None = None
+    geographic: str | None = None
     order_by: Literal[
         "relevance",
         "id",

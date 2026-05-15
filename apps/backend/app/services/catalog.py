@@ -1,5 +1,6 @@
 from typing import Annotated, Any
 
+from beanie import SortDirection
 from bson import ObjectId
 from fastapi import Depends
 from pydantic_ai import Embedder
@@ -25,22 +26,31 @@ _SORT_FIELD: dict[str, str] = {
 }
 
 
-def _build_filter(params: FilterParams, user: User | None = None) -> dict[str, Any]:
+async def _build_filter(params: FilterParams, user: User | None = None) -> dict[str, Any]:
+    print("Building filter with params:", params)
     f: dict[str, Any] = {}
     if params.from_year is not None:
         f["from_year"] = {"$gte": params.from_year}
     if params.to_year is not None:
         f["to_year"] = {"$lte": params.to_year}
-    if params.denomination:
-        f["denomination"] = {"$in": params.denomination}
-    if params.manufacturer:
-        f["manufacturer"] = {"$in": params.manufacturer}
-    if params.material:
-        f["material"] = {"$in": params.material}
-    if params.authority:
-        f["authority"] = {"$in": params.authority}
+    if params.denomination is not None:
+        f["denomination"] = params.denomination
+    if params.manufacturer is not None:
+        f["manufacturer"] = params.manufacturer
+    if params.material is not None:
+        f["material"] = params.material
+    if params.authority is not None:
+        f["authority"] = params.authority
+    if params.object_type is not None:
+        f["object_type"] = params.object_type
+    if params.geographic is not None:
+        geo_doc = await Geographic.find_one({"name": params.geographic})
+        if geo_doc:
+            f["geographic.$id"] = geo_doc.id
     if user:
         f["record_id"] = {"$in": user.collection}
+
+    print(f)
     return f
 
 
@@ -91,7 +101,7 @@ class CatalogService:
 
         collection = Coin.get_pymongo_collection()
         candidate_limit = max(100, params.skip + params.limit)
-        mongo_filter = _build_filter(params, user)
+        mongo_filter = await _build_filter(params, user)
 
         pipeline = [
             {
@@ -155,16 +165,16 @@ class CatalogService:
         return CoinListResponse(items=await self._fetch_coins(page_ids), total=total)
 
     async def _list_coins(self, params: FilterParams, user: User | None = None) -> CoinListResponse:
-        mongo_filter = _build_filter(params, user)
-        query = Coin.find(mongo_filter, fetch_links=True)
+        mongo_filter = await _build_filter(params, user)
+        query = Coin.find(mongo_filter)
 
         if params.order_by != "relevance":
-            prefix = "" if params.order_direction == "asc" else "-"
-            query = query.sort(f"{prefix}{_SORT_FIELD[params.order_by]}")
+            direction = SortDirection.ASCENDING if params.order_direction == "asc" else SortDirection.DESCENDING
+            query = query.sort([(_SORT_FIELD[params.order_by], direction), ("record_id", SortDirection.ASCENDING)])
 
-        total = await Coin.find(mongo_filter).count()
-        coins = await query.skip(params.skip).limit(params.limit).to_list()
-        return CoinListResponse(items=[_map_coin(coin) for coin in coins], total=total)
+        total = await query.count()
+        page = await query.skip(params.skip).limit(params.limit).to_list()
+        return CoinListResponse(items=await self._fetch_coins([str(c.id) for c in page]), total=total)
 
     async def _fetch_coins(self, ids: list[str]) -> list[CoinModel]:
         if not ids:

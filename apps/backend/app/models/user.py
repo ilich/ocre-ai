@@ -10,6 +10,10 @@ class UserResponse(BaseModel):
     collection: list[str]
 
 
+class ChangeProfileRequest(BaseModel):
+    full_name: str = Field(min_length=1, description="The user's full name")
+
+
 class AddCoindToCollectionRequest(BaseModel):
     record_id: str = Field(min_length=1, description="The OCRE record ID of the coin to add to the user's collection")
 

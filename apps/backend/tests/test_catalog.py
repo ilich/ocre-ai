@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from beanie import SortDirection
 from bson import ObjectId
 from fastapi.testclient import TestClient
 
@@ -141,46 +142,46 @@ def test_find_coins_by_record_ids_fetches_and_preserves_requested_order() -> Non
 
 
 def test_build_filter_empty_when_no_params() -> None:
-    assert _build_filter(FilterParams()) == {}
+    assert asyncio.run(_build_filter(FilterParams())) == {}
 
 
 def test_build_filter_from_year() -> None:
-    assert _build_filter(FilterParams(from_year=100)) == {"from_year": {"$gte": 100}}
+    assert asyncio.run(_build_filter(FilterParams(from_year=100))) == {"from_year": {"$gte": 100}}
 
 
 def test_build_filter_to_year() -> None:
-    assert _build_filter(FilterParams(to_year=400)) == {"to_year": {"$lte": 400}}
+    assert asyncio.run(_build_filter(FilterParams(to_year=400))) == {"to_year": {"$lte": 400}}
 
 
 def test_build_filter_denomination() -> None:
-    result = _build_filter(FilterParams(denomination=["denarius", "aureus"]))
-    assert result == {"denomination": {"$in": ["denarius", "aureus"]}}
+    result = asyncio.run(_build_filter(FilterParams(denomination="denarius")))
+    assert result == {"denomination": "denarius"}
 
 
 def test_build_filter_material() -> None:
-    assert _build_filter(FilterParams(material=["silver"])) == {"material": {"$in": ["silver"]}}
+    assert asyncio.run(_build_filter(FilterParams(material="silver"))) == {"material": "silver"}
 
 
 def test_build_filter_manufacturer() -> None:
-    assert _build_filter(FilterParams(manufacturer=["Rome"])) == {"manufacturer": {"$in": ["Rome"]}}
+    assert asyncio.run(_build_filter(FilterParams(manufacturer="Rome"))) == {"manufacturer": "Rome"}
 
 
 def test_build_filter_authority() -> None:
-    assert _build_filter(FilterParams(authority=["Augustus"])) == {"authority": {"$in": ["Augustus"]}}
+    assert asyncio.run(_build_filter(FilterParams(authority="Augustus"))) == {"authority": "Augustus"}
 
 
-def test_build_filter_empty_lists_not_included() -> None:
-    params = FilterParams(denomination=[], manufacturer=[], material=[], authority=[])
-    assert _build_filter(params) == {}
+def test_build_filter_none_not_included() -> None:
+    params = FilterParams(denomination=None, manufacturer=None, material=None, authority=None)
+    assert asyncio.run(_build_filter(params)) == {}
 
 
 def test_build_filter_multiple_filters_combined() -> None:
-    params = FilterParams(from_year=100, to_year=400, material=["silver"], authority=["Augustus"])
-    assert _build_filter(params) == {
+    params = FilterParams(from_year=100, to_year=400, material="silver", authority="Augustus")
+    assert asyncio.run(_build_filter(params)) == {
         "from_year": {"$gte": 100},
         "to_year": {"$lte": 400},
-        "material": {"$in": ["silver"]},
-        "authority": {"$in": ["Augustus"]},
+        "material": "silver",
+        "authority": "Augustus",
     }
 
 
@@ -290,12 +291,12 @@ def test_list_coins_returns_coin_list_response() -> None:
 
 def test_list_coins_passes_filter_to_find() -> None:
     service = _service()
-    params = FilterParams(material=["silver"])
+    params = FilterParams(material="silver")
     with patch.object(Coin, "find") as mock_find:
         mock_find.return_value = _mock_find_query()
         asyncio.run(service._list_coins(params))
     for call in mock_find.call_args_list:
-        assert call.args[0] == {"material": {"$in": ["silver"]}}
+        assert call.args[0] == {"material": "silver"}
 
 
 def test_list_coins_applies_sort() -> None:
@@ -303,7 +304,9 @@ def test_list_coins_applies_sort() -> None:
     mock_query = _mock_find_query()
     with patch.object(Coin, "find", return_value=mock_query):
         asyncio.run(service._list_coins(FilterParams(order_by="title", order_direction="desc")))
-    mock_query.sort.assert_called_once_with("-title")
+    mock_query.sort.assert_called_once_with(
+        [("title", SortDirection.DESCENDING), ("record_id", SortDirection.ASCENDING)]
+    )
 
 
 def test_list_coins_no_sort_when_order_by_relevance() -> None:
@@ -319,7 +322,9 @@ def test_list_coins_ascending_sort() -> None:
     mock_query = _mock_find_query()
     with patch.object(Coin, "find", return_value=mock_query):
         asyncio.run(service._list_coins(FilterParams(order_by="from_year", order_direction="asc")))
-    mock_query.sort.assert_called_once_with("from_year")
+    mock_query.sort.assert_called_once_with(
+        [("from_year", SortDirection.ASCENDING), ("record_id", SortDirection.ASCENDING)]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -347,11 +352,11 @@ def test_coins_search_includes_match_stage_when_filters_set() -> None:
         patch.object(Coin, "get_pymongo_collection", return_value=mock_col),
         patch.object(Coin, "find", return_value=_mock_find_query()),
     ):
-        asyncio.run(service._coins_search(FilterParams(search="roman", material=["silver"])))
+        asyncio.run(service._coins_search(FilterParams(search="roman", material="silver")))
     pipeline = mock_col.aggregate.call_args.args[0]
     match_stages = [s for s in pipeline if "$match" in s]
     assert len(match_stages) == 1
-    assert match_stages[0]["$match"] == {"material": {"$in": ["silver"]}}
+    assert match_stages[0]["$match"] == {"material": "silver"}
 
 
 def test_coins_search_excludes_match_stage_when_no_filters() -> None:

@@ -14,7 +14,7 @@ class EmailService:
         self.jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("app/templates"))
 
     def send_forgot_password_email(self, user: User, token: str) -> None:
-        reset_password_url = f"{self.settings.public_url}/reset-password?token={token}"
+        reset_password_url = f"{self.settings.public_url}/reset-password/{token}"
         subject = "Reset Your Password"
         template = self.jinja_env.get_template("forgot_password.html")
         body = template.render(user=user, reset_password_url=reset_password_url)
