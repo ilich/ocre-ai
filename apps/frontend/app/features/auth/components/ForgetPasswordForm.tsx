@@ -30,14 +30,9 @@ export default function ForgetPasswordForm() {
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Alert severity="success">
-          We sent a password reset link to{" "}
-          <strong>{getValues("email")}</strong>. Check your inbox.
+          We sent a password reset link to <strong>{getValues("email")}</strong>. Check your inbox.
         </Alert>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ textAlign: "center" }}
-        >
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
           <MuiLink component={Link} to="/" variant="body2">
             Back to sign in
           </MuiLink>
@@ -81,11 +76,7 @@ export default function ForgetPasswordForm() {
         Send reset link
       </Button>
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: "center" }}
-      >
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         <MuiLink component={Link} to="/" variant="body2">
           Back to sign in
         </MuiLink>

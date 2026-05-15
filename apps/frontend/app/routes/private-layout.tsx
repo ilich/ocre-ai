@@ -1,5 +1,7 @@
 import { Outlet, redirect } from "react-router";
 import AppHeader from "~/components/layout/AppHeader";
+import ChatFab from "~/features/chat/components/ChatFab";
+import ChatPopup from "~/features/chat/components/ChatPopup";
 import { isAuthenticated } from "~/lib/auth";
 
 export async function clientLoader() {
@@ -14,6 +16,8 @@ export default function PrivateLayout() {
     <>
       <AppHeader />
       <Outlet />
+      <ChatFab />
+      <ChatPopup />
     </>
   );
 }

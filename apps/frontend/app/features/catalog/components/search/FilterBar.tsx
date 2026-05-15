@@ -26,12 +26,7 @@ interface FilterBarProps {
   disabled?: boolean;
 }
 
-export default function FilterBar({
-  metadata,
-  filters,
-  onChange,
-  disabled,
-}: FilterBarProps) {
+export default function FilterBar({ metadata, filters, onChange, disabled }: FilterBarProps) {
   function handleChange(key: keyof CatalogFilters, value: string) {
     onChange({ ...filters, [key]: value });
   }

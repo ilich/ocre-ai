@@ -18,16 +18,8 @@ export default function ColorSchemeToggle({
 
   return (
     <Tooltip title={isDark ? "Switch to light mode" : "Switch to dark mode"}>
-      <IconButton
-        color={color}
-        size={size}
-        onClick={() => setMode(isDark ? "light" : "dark")}
-      >
-        {isDark ? (
-          <LightModeIcon fontSize={size} />
-        ) : (
-          <DarkModeIcon fontSize={size} />
-        )}
+      <IconButton color={color} size={size} onClick={() => setMode(isDark ? "light" : "dark")}>
+        {isDark ? <LightModeIcon fontSize={size} /> : <DarkModeIcon fontSize={size} />}
       </IconButton>
     </Tooltip>
   );

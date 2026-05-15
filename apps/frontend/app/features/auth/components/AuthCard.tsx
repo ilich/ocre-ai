@@ -44,10 +44,7 @@ export default function AuthCard({ title, children }: AuthCardProps) {
             >
               OCRE.AI
             </Typography>
-            <Typography
-              variant="h5"
-              sx={{ mt: 2, fontWeight: 600 }}
-            >
+            <Typography variant="h5" sx={{ mt: 2, fontWeight: 600 }}>
               {title}
             </Typography>
           </Box>

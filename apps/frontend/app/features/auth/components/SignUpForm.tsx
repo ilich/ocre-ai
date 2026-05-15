@@ -90,18 +90,9 @@ export default function SignUpForm() {
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: "center" }}
-      >
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         Already have an account?{" "}
-        <MuiLink
-          component={Link}
-          to="/"
-          variant="body2"
-          sx={{ fontWeight: 500 }}
-        >
+        <MuiLink component={Link} to="/" variant="body2" sx={{ fontWeight: 500 }}>
           Sign in
         </MuiLink>
       </Typography>

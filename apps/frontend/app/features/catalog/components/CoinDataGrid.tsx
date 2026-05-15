@@ -2,9 +2,9 @@ import { useNavigate, Link } from "react-router";
 import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import type { GridColDef, GridSortModel } from "@mui/x-data-grid";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import type { CoinModel } from "../types";
@@ -52,9 +52,9 @@ export default function CoinDataGrid({
         </Link>
       ),
     },
-    { field: "title",       headerName: "Title",       width: 220 },
+    { field: "title", headerName: "Title", width: 220 },
     { field: "object_type", headerName: "Object Type", width: 140 },
-    { field: "date_range",  headerName: "Issue Date",  width: 130, sortable: false },
+    { field: "date_range", headerName: "Issue Date", width: 130, sortable: false },
     {
       field: "denomination",
       headerName: "Denomination",
@@ -88,6 +88,17 @@ export default function CoinDataGrid({
         const inCollection = collectionIds.has(row.id);
         return (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", height: "100%" }}>
+            <Tooltip title="View details">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/catalog/${row.id}`);
+                }}
+              >
+                <InfoOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={inCollection ? "Remove from collection" : "Add to collection"}>
               <span>
                 <IconButton
@@ -95,25 +106,18 @@ export default function CoinDataGrid({
                   disabled={collectionLoading}
                   onClick={(e) => {
                     e.stopPropagation();
-                    inCollection
-                      ? onRemoveFromCollection(row.id)
-                      : onAddToCollection(row.id);
+                    inCollection ? onRemoveFromCollection(row.id) : onAddToCollection(row.id);
                   }}
                   color={inCollection ? "warning" : "default"}
                 >
-                  {inCollection ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                  {inCollection ? (
+                    <StarIcon fontSize="small" />
+                  ) : (
+                    <StarBorderIcon fontSize="small" />
+                  )}
                 </IconButton>
               </span>
             </Tooltip>
-            <Button
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/catalog/${row.id}`);
-              }}
-            >
-              Details
-            </Button>
           </Box>
         );
       },

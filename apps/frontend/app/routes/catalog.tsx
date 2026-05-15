@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -5,6 +6,7 @@ import CoinDataGrid from "~/features/catalog/components/CoinDataGrid";
 import SearchPanel from "~/features/catalog/components/search/SearchPanel";
 import { useCollection } from "~/features/catalog/hooks/useCollection";
 import { useCatalogSearch } from "~/features/catalog/hooks/useCatalogSearch";
+import { useChatStore } from "~/store/chat";
 
 export function meta() {
   return [{ title: "Catalog — The AI-Based Roman Coin Identification System" }];
@@ -12,10 +14,16 @@ export function meta() {
 
 export default function CatalogPage() {
   const {
-    searchState, setSearchState, commitSearch,
-    onPaginationModelChange, onSortModelChange,
+    searchState,
+    setSearchState,
+    commitSearch,
+    onPaginationModelChange,
+    onSortModelChange,
     gridApiRef,
-    rows, total, loading, error,
+    rows,
+    total,
+    loading,
+    error,
   } = useCatalogSearch();
 
   const {
@@ -24,6 +32,14 @@ export default function CatalogPage() {
     addToCollection,
     removeFromCollection,
   } = useCollection();
+
+  const { setCoinsContext, clearHistory } = useChatStore();
+  useEffect(() => {
+    clearHistory();
+  }, [clearHistory]);
+  useEffect(() => {
+    setCoinsContext(rows.map((r) => r.id));
+  }, [rows, setCoinsContext]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

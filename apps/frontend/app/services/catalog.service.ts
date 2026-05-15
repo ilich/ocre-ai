@@ -50,8 +50,7 @@ export const catalogService = {
     return apiClient.get<CoinListResponse>(`/catalog${qs ? `?${qs}` : ""}`);
   },
 
-  getCoinById: (id: string) =>
-    apiClient.get<CoinModel>(`/catalog/${id}`),
+  getCoinById: (id: string) => apiClient.get<CoinModel>(`/catalog/${id}`),
 
   describeImage: (image: File) => {
     const form = new FormData();

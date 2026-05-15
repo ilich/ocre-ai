@@ -50,12 +50,7 @@ export default function AppHeader() {
               {user.full_name}
             </Button>
           )}
-          <Button
-            color="inherit"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            size="small"
-          >
+          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout} size="small">
             Sign out
           </Button>
         </Box>

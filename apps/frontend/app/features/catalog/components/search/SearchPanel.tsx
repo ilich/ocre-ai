@@ -23,10 +23,7 @@ export default function SearchPanel({
   const [tab, setTab] = useState(0);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{ border: 1, borderColor: "divider", borderRadius: 3, p: 3 }}
-    >
+    <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 3, p: 3 }}>
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}

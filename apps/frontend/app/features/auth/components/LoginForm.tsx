@@ -75,18 +75,9 @@ export default function LoginForm() {
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: "center" }}
-      >
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         Don&apos;t have an account?{" "}
-        <MuiLink
-          component={Link}
-          to="/sign-up"
-          variant="body2"
-          sx={{ fontWeight: 500 }}
-        >
+        <MuiLink component={Link} to="/sign-up" variant="body2" sx={{ fontWeight: 500 }}>
           Sign up
         </MuiLink>
       </Typography>

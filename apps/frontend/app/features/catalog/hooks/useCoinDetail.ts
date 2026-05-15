@@ -9,9 +9,9 @@ export interface UseCoinDetailReturn {
 }
 
 export function useCoinDetail(id: string): UseCoinDetailReturn {
-  const [coin, setCoin]       = useState<CoinModel | null>(null);
+  const [coin, setCoin] = useState<CoinModel | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);

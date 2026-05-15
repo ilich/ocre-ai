@@ -1,9 +1,9 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
@@ -11,6 +11,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useCoinDetail } from "~/features/catalog/hooks/useCoinDetail";
+import { useChatStore } from "~/store/chat";
 import type { Route } from "./+types/catalog-detail";
 
 export function meta() {
@@ -26,19 +27,24 @@ function FieldRow({ label, value }: FieldRowProps) {
   const isEmpty = !value || (Array.isArray(value) && value.length === 0);
   if (isEmpty) return null;
 
-  const content = Array.isArray(value) && value.length > 1 ? (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-      {value.map((v) => (
-        <Chip key={v} label={v} size="small" />
-      ))}
-    </Box>
-  ) : (
-    <Typography variant="body1">{Array.isArray(value) ? value[0] : value}</Typography>
-  );
+  const content =
+    Array.isArray(value) && value.length > 1 ? (
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+        {value.map((v) => (
+          <Chip key={v} label={v} size="small" />
+        ))}
+      </Box>
+    ) : (
+      <Typography variant="body1">{Array.isArray(value) ? value[0] : value}</Typography>
+    );
 
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}
+      >
         {label}
       </Typography>
       <Box sx={{ mt: 0.5 }}>{content}</Box>
@@ -49,14 +55,17 @@ function FieldRow({ label, value }: FieldRowProps) {
 export default function CatalogDetailPage({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
   const { coin, loading, error } = useCoinDetail(params.id);
+  const { setCoinsContext, clearHistory } = useChatStore();
+  useEffect(() => {
+    clearHistory();
+  }, [clearHistory]);
+  useEffect(() => {
+    setCoinsContext([params.id]);
+  }, [params.id, setCoinsContext]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(-1)}
-        sx={{ mb: 3 }}
-      >
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 3 }}>
         Back to Catalog
       </Button>
 
@@ -85,19 +94,23 @@ export default function CatalogDetailPage({ params }: Route.ComponentProps) {
 
           {/* Metadata fields */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-            <FieldRow label="Object Type"   value={coin.object_type} />
-            <FieldRow label="Issue Date"    value={coin.date_range} />
-            <FieldRow label="Authority"     value={coin.authority} />
-            <FieldRow label="Denomination"  value={coin.denomination} />
-            <FieldRow label="Material"      value={coin.material} />
-            <FieldRow label="Manufacturer"  value={coin.manufacturer} />
+            <FieldRow label="Object Type" value={coin.object_type} />
+            <FieldRow label="Issue Date" value={coin.date_range} />
+            <FieldRow label="Authority" value={coin.authority} />
+            <FieldRow label="Denomination" value={coin.denomination} />
+            <FieldRow label="Material" value={coin.material} />
+            <FieldRow label="Manufacturer" value={coin.manufacturer} />
             <FieldRow label="Mint Location" value={coin.geographic} />
 
             {coin.description && (
               <>
                 <Divider />
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}
+                  >
                     Description
                   </Typography>
                   <Typography variant="body1" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
@@ -112,7 +125,11 @@ export default function CatalogDetailPage({ params }: Route.ComponentProps) {
               <>
                 <Divider />
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}
+                  >
                     Images
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>

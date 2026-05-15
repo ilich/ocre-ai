@@ -27,9 +27,7 @@ async function request<T>(
   { method = "GET", body, token, skipAuthRedirect = false }: RequestOptions = {}
 ): Promise<T> {
   const isFormData = body instanceof FormData;
-  const headers: Record<string, string> = isFormData
-    ? {}
-    : { "Content-Type": "application/json" };
+  const headers: Record<string, string> = isFormData ? {} : { "Content-Type": "application/json" };
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -48,8 +46,7 @@ async function request<T>(
       useAuthStore.getState().clearAuth();
       window.location.href = "/";
     }
-    const message =
-      (data as { detail?: string })?.detail ?? res.statusText;
+    const message = (data as { detail?: string })?.detail ?? res.statusText;
     throw new ApiError(res.status, message, data);
   }
 
@@ -85,6 +82,5 @@ export const apiClient = {
   postForm: <T>(path: string, body: FormData) =>
     request<T>(path, { method: "POST", body, token: getStoredToken() }),
 
-  delete: <T>(path: string) =>
-    request<T>(path, { method: "DELETE", token: getStoredToken() }),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE", token: getStoredToken() }),
 };

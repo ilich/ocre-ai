@@ -23,6 +23,5 @@ export interface ChatResponse {
 }
 
 export const chatService = {
-  chat: (body: ChatRequest) =>
-    apiClient.post<ChatResponse>("/chat", body),
+  chat: (body: ChatRequest) => apiClient.post<ChatResponse>("/chat", body),
 };

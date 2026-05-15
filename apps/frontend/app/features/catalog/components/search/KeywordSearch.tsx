@@ -62,9 +62,7 @@ export default function KeywordSearch({
         control={
           <Checkbox
             checked={state.myCollection}
-            onChange={(e) =>
-              onChange({ ...state, myCollection: e.target.checked })
-            }
+            onChange={(e) => onChange({ ...state, myCollection: e.target.checked })}
             size="small"
           />
         }

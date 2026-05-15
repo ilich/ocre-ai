@@ -70,11 +70,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         Set new password
       </Button>
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: "center" }}
-      >
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         <MuiLink component={Link} to="/" variant="body2">
           Back to sign in
         </MuiLink>

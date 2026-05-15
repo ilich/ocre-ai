@@ -7,11 +7,20 @@ import type { CatalogOrderBy } from "~/services/catalog.service";
 import type { CatalogFilters, CoinModel, KeywordSearchState } from "../types";
 
 const SORTABLE_FIELDS = new Set<string>([
-  "id", "title", "object_type", "denomination",
-  "manufacturer", "material", "authority", "geographic",
+  "id",
+  "title",
+  "object_type",
+  "denomination",
+  "manufacturer",
+  "material",
+  "authority",
+  "geographic",
 ]);
 
-export interface PaginationModel { page: number; pageSize: number }
+export interface PaginationModel {
+  page: number;
+  pageSize: number;
+}
 
 export interface UseCatalogSearchReturn {
   searchState: KeywordSearchState;
@@ -28,12 +37,12 @@ export interface UseCatalogSearchReturn {
 
 function getFiltersFromUrl(p: URLSearchParams): CatalogFilters {
   return {
-    material:     p.get("material")     ?? "",
+    material: p.get("material") ?? "",
     denomination: p.get("denomination") ?? "",
-    object_type:  p.get("object_type")  ?? "",
+    object_type: p.get("object_type") ?? "",
     manufacturer: p.get("manufacturer") ?? "",
-    authority:    p.get("authority")    ?? "",
-    geographic:   p.get("geographic")   ?? "",
+    authority: p.get("authority") ?? "",
+    geographic: p.get("geographic") ?? "",
   };
 }
 
@@ -45,47 +54,45 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
 
   // Filters and committed query live in the URL
   const committedQuery = searchParams.get("q") ?? "";
-  const filters        = getFiltersFromUrl(searchParams);
-  const myCollection   = searchParams.get("my") === "1";
+  const filters = getFiltersFromUrl(searchParams);
+  const myCollection = searchParams.get("my") === "1";
 
   // Live text field — local only
   const [liveQuery, setLiveQuery] = useState(committedQuery);
 
   // Pagination and sort — local state, never synced to URL
-  const [page, setPage]           = useState(0);
-  const [pageSize, setPageSize]   = useState(25);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const [sortField, setSortField] = useState("");
-  const [sortDir, setSortDir]     = useState<"asc" | "desc">("asc");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // API results
-  const [rows, setRows]       = useState<CoinModel[]>([]);
-  const [total, setTotal]     = useState(0);
+  const [rows, setRows] = useState<CoinModel[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-  const fetchIdRef            = useRef(0);
+  const [error, setError] = useState<string | null>(null);
+  const fetchIdRef = useRef(0);
 
   useEffect(() => {
     const id = ++fetchIdRef.current;
     setLoading(true);
     setError(null);
 
-    const orderBy = SORTABLE_FIELDS.has(sortField)
-      ? (sortField as CatalogOrderBy)
-      : undefined;
+    const orderBy = SORTABLE_FIELDS.has(sortField) ? (sortField as CatalogOrderBy) : undefined;
 
     catalogService
       .findCoins({
-        search:       committedQuery || null,
-        material:     filters.material     || null,
+        search: committedQuery || null,
+        material: filters.material || null,
         denomination: filters.denomination || null,
-        object_type:  filters.object_type  || null,
+        object_type: filters.object_type || null,
         manufacturer: filters.manufacturer || null,
-        authority:    filters.authority    || null,
-        geographic:   filters.geographic   || null,
-        my:           myCollection || undefined,
-        order_by:     orderBy,
+        authority: filters.authority || null,
+        geographic: filters.geographic || null,
+        my: myCollection || undefined,
+        order_by: orderBy,
         order_direction: orderBy ? sortDir : undefined,
-        skip:  page * pageSize,
+        skip: page * pageSize,
         limit: pageSize,
       })
       .then((res) => {
@@ -102,10 +109,17 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
       });
   }, [
     committedQuery,
-    filters.material, filters.denomination, filters.object_type,
-    filters.manufacturer, filters.authority, filters.geographic,
+    filters.material,
+    filters.denomination,
+    filters.object_type,
+    filters.manufacturer,
+    filters.authority,
+    filters.geographic,
     myCollection,
-    page, pageSize, sortField, sortDir,
+    page,
+    pageSize,
+    sortField,
+    sortDir,
   ]);
 
   // Reset both our state and the DataGrid's internal page counter
@@ -116,14 +130,14 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
 
   function writeUrl(q: string, f: CatalogFilters, my: boolean) {
     const next = new URLSearchParams();
-    if (q)              next.set("q",            q);
-    if (f.material)     next.set("material",     f.material);
+    if (q) next.set("q", q);
+    if (f.material) next.set("material", f.material);
     if (f.denomination) next.set("denomination", f.denomination);
-    if (f.object_type)  next.set("object_type",  f.object_type);
+    if (f.object_type) next.set("object_type", f.object_type);
     if (f.manufacturer) next.set("manufacturer", f.manufacturer);
-    if (f.authority)    next.set("authority",    f.authority);
-    if (f.geographic)   next.set("geographic",   f.geographic);
-    if (my)             next.set("my",           "1");
+    if (f.authority) next.set("authority", f.authority);
+    if (f.geographic) next.set("geographic", f.geographic);
+    if (my) next.set("my", "1");
     setSearchParams(next, { replace: true });
   }
 
@@ -160,9 +174,15 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
   const searchState: KeywordSearchState = { query: liveQuery, filters, myCollection };
 
   return {
-    searchState, setSearchState, commitSearch,
-    onPaginationModelChange, onSortModelChange,
+    searchState,
+    setSearchState,
+    commitSearch,
+    onPaginationModelChange,
+    onSortModelChange,
     gridApiRef,
-    rows, total, loading, error,
+    rows,
+    total,
+    loading,
+    error,
   };
 }

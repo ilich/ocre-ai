@@ -16,11 +16,9 @@ export interface BaseResponse {
 }
 
 export const userService = {
-  getMe: (token?: string) =>
-    apiClient.get<AuthUser>("/user/me", { token }),
+  getMe: (token?: string) => apiClient.get<AuthUser>("/user/me", { token }),
 
-  updateProfile: (body: UpdateProfileRequest) =>
-    apiClient.put<AuthUser>("/user/me", body),
+  updateProfile: (body: UpdateProfileRequest) => apiClient.put<AuthUser>("/user/me", body),
 
   changePassword: (body: ChangePasswordRequest) =>
     apiClient.post<BaseResponse>("/user/change-password", body),

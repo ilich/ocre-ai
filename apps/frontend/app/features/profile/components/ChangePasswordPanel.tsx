@@ -73,11 +73,7 @@ export default function ChangePasswordPanel() {
           />
 
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button
-              type="submit"
-              variant="contained"
-              loading={loading}
-            >
+            <Button type="submit" variant="contained" loading={loading}>
               Save
             </Button>
           </Box>
