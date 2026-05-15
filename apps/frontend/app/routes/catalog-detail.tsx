@@ -88,7 +88,14 @@ export default function CatalogDetailPage({ params }: Route.ComponentProps) {
             {coin.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 3 }}>
-            Record ID: <Link href={`https://numismatics.org/ocre/id/${coin.id}`} target="_blank" rel="noopener noreferrer">{coin.id}</Link>
+            Record ID:{" "}
+            <Link
+              href={`https://numismatics.org/ocre/id/${coin.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {coin.id}
+            </Link>
           </Typography>
 
           <Divider sx={{ mb: 3 }} />
