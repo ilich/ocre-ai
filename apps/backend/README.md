@@ -42,6 +42,7 @@ app/
     fields.py        # Shared Pydantic field types
     health.py        # Health check model
 tests/               # pytest suite (mirrors routes/)
+  performance/       # Locust load tests (see tests/performance/README.md)
 support/             # Notebooks / scratch scripts
 ```
 
@@ -105,7 +106,7 @@ Copy `.env.example` to `.env` and fill in the required values. Never commit secr
 |--------|------------------------|---------------------------------------------|
 | GET    | `/health`              | Health check                                |
 | POST   | `/auth/register`       | Create account                              |
-| POST   | `/auth/login`          | Login, returns JWT                          |
+| POST   | `/auth/sign-in`        | Login, returns JWT                          |
 | POST   | `/auth/forgot-password`| Send password reset email                   |
 | POST   | `/auth/reset-password` | Reset password using token                  |
 | GET    | `/user/me`             | Get current user profile                    |
