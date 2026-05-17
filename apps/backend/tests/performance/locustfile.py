@@ -11,7 +11,7 @@ class CatalogUser(HttpUser):
     wait_time = between(1, 5)
 
     @task
-    def find_coins(self):
+    def find_coins(self) -> None:
         authorities = ["Theodosius I", "Valentinian I", "Licinius"]
         metals = ["Gold", "Silver", "Bronze"]
         mints = ["Rome", "Nicomedia", "Ticinum", "Cyzicus"]
@@ -29,7 +29,7 @@ class CatalogUser(HttpUser):
             else:
                 response.failure(f"Failed to search coins: {prompt}")
 
-    def on_start(self):
+    def on_start(self) -> None:
         username = os.getenv("USERNAME")
         password = os.getenv("PASSWORD")
         body = {"login": username, "password": password}
