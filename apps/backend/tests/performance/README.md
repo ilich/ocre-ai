@@ -2,9 +2,9 @@
 
 ## Setup
 
-1. Install Locust:
+1. Install dependencies (Locust is included in dev dependencies):
    ```bash
-   uv pip install locust
+   make install   # or: uv sync
    ```
 
 2. Configure environment variables:
@@ -15,21 +15,21 @@
 
 ## Running Tests
 
-### Local Development Server
+### Local Development Server (direct, port 8000)
 ```bash
-# Using the default config (localhost:8000)
-locust -f locustfile.py
-
-# Or explicitly set the host
+# Override the nginx-proxy default to hit the dev server directly
 locust -f locustfile.py --host=http://localhost:8000
+```
+
+### Full stack via Docker / nginx proxy (default config)
+```bash
+# Uses the default host from locust.conf: http://localhost/api
+locust -f locustfile.py
 ```
 
 ### Staging/Production
 ```bash
-# Override the host for staging
 locust -f locustfile.py --host=https://staging.yourdomain.com
-
-# Override the host for production
 locust -f locustfile.py --host=https://api.yourdomain.com
 ```
 
